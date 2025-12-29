@@ -1,6 +1,6 @@
 import { useParams } from 'next/navigation';
 
-export default function ItemDetailPage() {
+function ItemDetailPage() {
   const params = useParams();
   const { itemId } = params;
 
@@ -12,3 +12,5 @@ export default function ItemDetailPage() {
     </div>
   );
 }
+
+export default ItemDetailPage;

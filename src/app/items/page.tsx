@@ -1,4 +1,4 @@
-export default function ItemsPage() {
+function ItemsPage() {
   return (
     <div>
       <h1>Items Page</h1>
@@ -6,3 +6,5 @@ export default function ItemsPage() {
     </div>
   );
 }
+
+export default ItemsPage;
