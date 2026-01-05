@@ -95,7 +95,7 @@ export default function SingnUpPage() {
           </section>
 
           {/* 하단 버튼 구역 */}
-          <div className="flex gap-3 pt-6 justify-end">
+          <div className="flex gap-3 pt-4 justify-end">
             <button type="button" className="border border-gray-300 py-3.5  text-gray-600 font-normal hover:bg-gray-50 transition-colors px-12">
               취소
             </button>
