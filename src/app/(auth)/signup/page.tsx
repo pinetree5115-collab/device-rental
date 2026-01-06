@@ -2,7 +2,13 @@
 import React, { useState } from 'react';
 export default function SingnUpPage() {
   //나중에 기능 넣기 위한 상태 정의
-  const [email, setEmail] = useState(' ');
+  const [email, setEmail] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false); // 인증번호 발송 여부
+
+  const handleSendCode = () => {
+    // 인증번호 발송 로직
+    setIsCodeSent(true);
+  };
 
   return (
     //중앙정렬, 흰색카드 형태
@@ -38,31 +44,50 @@ export default function SingnUpPage() {
                     id="email"
                     type="email"
                     placeholder="이메일 주소를 입력하세요"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="flex-1 border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
                     required
                   />
-                  <button type="button" className="bg-[#d7d8da] px-5 py-2.5 text-sm text-white font-normal">
-                    재전송
-                  </button>
+                  {!isCodeSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      className="bg-[#1e293b] px-5 py-2.5 text-sm text-white font-normal whitespace-nowrap"
+                    >
+                      인증번호 발송
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      className="bg-[#d7d8da] px-5 py-2.5 text-sm text-white font-normal"
+                    >
+                      재전송
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
-                  인증번호 * <span className="text-red-500 ml-1">2:51</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="authCode"
-                    type="text"
-                    placeholder="6자리 인증번호 입력"
-                    className="flex-1 border border-gray-300 p-2.5  focus:outline-none focus:border-red-500"
-                    maxLength={6}
-                  />
-                  <button type="button" className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal">
-                    인증 확인
-                  </button>
+
+              {isCodeSent && (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
+                    인증번호 * <span className="text-red-500 ml-1">2:51</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="authCode"
+                      type="text"
+                      placeholder="6자리 인증번호 입력"
+                      className="flex-1 border border-gray-300 p-2.5  focus:outline-none focus:border-red-500"
+                      maxLength={6}
+                    />
+                    <button type="button" className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal">
+                      인증 확인
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </section>
 
