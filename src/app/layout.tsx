@@ -1,22 +1,30 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import Providers from '@/providers';
+import type { Metadata } from "next";
+import "./globals.css";
+import Providers from "@/providers";
 
 export const metadata: Metadata = {
-  title: 'Device Rental',
-  description: '기기 대여 서비스',
+    title: "Device Rental",
+    description: "기기 대여 서비스",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  return (
-    <html lang="ko">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="ko">
+            <head>
+                <link
+                    rel="stylesheet"
+                    as="style"
+                    crossOrigin="anonymous"
+                    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+                />
+            </head>
+            <body>
+                <Providers>{children}</Providers>
+            </body>
+        </html>
+    );
 }
