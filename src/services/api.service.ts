@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ACCESS_TOKEN_KEY } from '@/constants/auth';
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://43.201.87.180:8080',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
