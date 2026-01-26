@@ -52,7 +52,13 @@ const SIDEBAR_MENU = [
 export default function MyPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfile>({
+    name: '홍길동',
+    email: 'user@example.com',
+    address: '서울특별시 강남구',
+  });
+  const [originalProfile, setOriginalProfile] = useState<UserProfile>({
     name: '홍길동',
     email: 'user@example.com',
     address: '서울특별시 강남구',
@@ -68,12 +74,24 @@ export default function MyPage() {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setOriginalProfile(profile);
+  };
+
+  const handleCancel = () => {
+    setProfile(originalProfile);
+    setIsEditing(false);
+  };
+
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
       // TODO: API 호출
       await new Promise((resolve) => setTimeout(resolve, 1000));
       alert('프로필이 수정되었습니다.');
+      setOriginalProfile(profile);
+      setIsEditing(false);
     } catch (error) {
       alert('프로필 수정에 실패했습니다.');
     } finally {
@@ -225,7 +243,8 @@ export default function MyPage() {
                     type="text"
                     value={profile.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                     placeholder="홍길동"
                   />
                 </div>
@@ -239,7 +258,8 @@ export default function MyPage() {
                     type="email"
                     value={profile.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                     placeholder="user@example.com"
                   />
                 </div>
@@ -253,20 +273,39 @@ export default function MyPage() {
                     type="text"
                     value={profile.address}
                     onChange={(e) => handleInputChange('address', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                     placeholder="서울특별시 강남구"
                   />
                 </div>
 
-                {/* 수정하기 버튼 */}
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className="px-6 py-2 bg-red-500 text-white hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? '수정 중...' : '수정하기'}
-                  </button>
+                {/* 버튼 영역 */}
+                <div className="flex justify-end gap-2">
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={handleCancel}
+                        disabled={isLoading}
+                        className="px-6 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                        className="px-6 py-2 bg-red-500 text-white hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? '저장 중...' : '변경사항 저장'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleEditClick}
+                      className="px-6 py-2 bg-red-500 text-white hover:bg-red-600"
+                    >
+                      수정하기
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
