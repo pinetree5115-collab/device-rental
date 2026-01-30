@@ -1,4 +1,4 @@
-import { Item } from "./MainPageClient";
+import type { Item } from "@/types/common";
 
 interface ItemCardProps {
     item: Item;
@@ -6,21 +6,24 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item, onClick }: ItemCardProps) {
-    const statusConfig = {
-        "대여 가능": {
+    const statusConfig: Record<
+        string,
+        { bg: string; text: string; label: string }
+    > = {
+        AVAILABLE: {
             bg: "bg-green-100",
             text: "text-green-700",
             label: "대여 가능",
         },
-        "대여 중": { bg: "bg-red-100", text: "text-red-700", label: "대여 중" },
-        "결제 보관 중": {
+        RENTED: { bg: "bg-red-100", text: "text-red-700", label: "대여 중" },
+        RESERVED: {
             bg: "bg-yellow-100",
             text: "text-yellow-700",
             label: "결제 보관 중",
         },
     };
 
-    const config = statusConfig[item.status];
+    const config = statusConfig[item.status] || statusConfig["AVAILABLE"];
 
     return (
         <div className="group relative cursor-pointer" onClick={onClick}>
@@ -34,8 +37,10 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
             {/* Image Container */}
             <div className="aspect-square overflow-hidden bg-gray-100 relative">
                 <img
-                    src={item.image}
-                    alt={item.name}
+                    src={
+                        item.imageUrls?.[0] || "https://via.placeholder.com/400"
+                    }
+                    alt={item.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                 />
             </div>
@@ -44,15 +49,17 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
             <div className="py-4 bg-white">
                 <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs text-gray-500 px-2 py-0.5 border border-gray-300">
-                        {item.category}
+                        {item.categoryName}
                     </span>
                 </div>
 
-                <h3 className="text-gray-900 mb-2 line-clamp-1">{item.name}</h3>
+                <h3 className="text-gray-900 mb-2 line-clamp-1">
+                    {item.title}
+                </h3>
 
                 <div className="flex items-center gap-1 mb-2">
                     <span className="text-gray-900">
-                        {item.price.toLocaleString()}원
+                        {item.pricePerDay.toLocaleString()}원
                     </span>
                     <span className="text-gray-500 text-sm">/일</span>
                 </div>
