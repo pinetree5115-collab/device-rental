@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { Category } from "@/types/common";
+import { useClickOutside } from "@/hooks/common";
 
 interface FilterBarProps {
     searchQuery: string;
@@ -22,29 +23,15 @@ export function FilterBar({
 }: FilterBarProps) {
     const [isStatusOpen, setIsStatusOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const statusRef = useRef<HTMLDivElement>(null);
-    const categoryRef = useRef<HTMLDivElement>(null);
+    const statusRef = useRef<HTMLDivElement | null>(null);
+    const categoryRef = useRef<HTMLDivElement | null>(null);
 
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (
-                statusRef.current &&
-                !statusRef.current.contains(event.target as Node)
-            ) {
-                setIsStatusOpen(false);
-            }
-            if (
-                categoryRef.current &&
-                !categoryRef.current.contains(event.target as Node)
-            ) {
-                setIsCategoryOpen(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () =>
-            document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    useClickOutside(statusRef as React.RefObject<HTMLElement>, () =>
+        setIsStatusOpen(false),
+    );
+    useClickOutside(categoryRef as React.RefObject<HTMLElement>, () =>
+        setIsCategoryOpen(false),
+    );
 
     const statusOptions = [
         { value: null, label: "전체 상태" },

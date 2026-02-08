@@ -29,3 +29,5 @@ export interface Item {
     userId: number;
     userName: string;
 }
+
+export type ItemStatus = "AVAILABLE" | "RESERVED"; // 백엔드한테 물어봐서 더 추가해야함
