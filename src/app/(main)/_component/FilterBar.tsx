@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
+import type { Category } from "@/types/common";
 
 interface FilterBarProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
-    statusFilter: string;
-    onStatusFilterChange: (value: string) => void;
-    categoryFilter: string;
-    onCategoryFilterChange: (value: string) => void;
-    priceSort: string;
-    onPriceSortChange: (value: string) => void;
+    statusFilter: string | null;
+    onStatusFilterChange: (value: string | null) => void;
+    categoryFilter: number | null;
+    onCategoryFilterChange: (value: number | null) => void;
+    categories: Category[];
 }
 
 export function FilterBar({
@@ -18,15 +18,12 @@ export function FilterBar({
     onStatusFilterChange,
     categoryFilter,
     onCategoryFilterChange,
-    priceSort,
-    onPriceSortChange,
+    categories,
 }: FilterBarProps) {
     const [isStatusOpen, setIsStatusOpen] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const [isPriceOpen, setIsPriceOpen] = useState(false);
     const statusRef = useRef<HTMLDivElement>(null);
     const categoryRef = useRef<HTMLDivElement>(null);
-    const priceRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -42,12 +39,6 @@ export function FilterBar({
             ) {
                 setIsCategoryOpen(false);
             }
-            if (
-                priceRef.current &&
-                !priceRef.current.contains(event.target as Node)
-            ) {
-                setIsPriceOpen(false);
-            }
         }
 
         document.addEventListener("mousedown", handleClickOutside);
@@ -56,24 +47,17 @@ export function FilterBar({
     }, []);
 
     const statusOptions = [
-        { value: "전체", label: "전체 상태" },
-        { value: "대여 가능", label: "대여 가능" },
-        { value: "대여 중", label: "대여 중" },
-        { value: "결제 보관 중", label: "결제 보관 중" },
+        { value: null, label: "전체 상태" },
+        { value: "AVAILABLE", label: "대여 가능" },
+        { value: "RESERVED", label: "대여 중" },
     ];
 
     const categoryOptions = [
-        { value: "전체", label: "전체 카테고리" },
-        { value: "갤럭시 울트라", label: "갤럭시 울트라" },
-        { value: "아이폰", label: "아이폰" },
-        { value: "캠코더", label: "캠코더" },
-        { value: "DSLR", label: "DSLR" },
-    ];
-
-    const priceOptions = [
-        { value: "최신순", label: "최신순" },
-        { value: "가격 낮은순", label: "가격 낮은순" },
-        { value: "가격 높은순", label: "가격 높은순" },
+        { value: null, label: "전체 카테고리" },
+        ...categories.map((cat) => ({
+            value: cat.id,
+            label: cat.name,
+        })),
     ];
 
     return (
@@ -120,8 +104,8 @@ export function FilterBar({
                 >
                     <span>
                         {categoryOptions.find(
-                            (opt) => opt.value === categoryFilter
-                        )?.label || "전체 카테고리"}
+                            (opt) => opt.value === categoryFilter,
+                        )?.label || "카테고리 선택"}
                     </span>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -192,51 +176,6 @@ export function FilterBar({
                                 }}
                                 className={`w-full px-4 py-2.5 text-sm text-left cursor-pointer hover:bg-gray-50 transition-colors ${
                                     statusFilter === option.value
-                                        ? "bg-gray-900 text-white hover:bg-gray-800"
-                                        : "text-gray-900"
-                                }`}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Price Sort */}
-            <div className="relative" ref={priceRef}>
-                <button
-                    onClick={() => setIsPriceOpen(!isPriceOpen)}
-                    className="w-full md:w-44 px-4 py-2.5 border border-gray-200 bg-white text-sm focus:outline-none focus:border-gray-900 transition-colors appearance-none cursor-pointer text-left flex items-center justify-between"
-                >
-                    <span>
-                        {priceOptions.find((opt) => opt.value === priceSort)
-                            ?.label || "최신순"}
-                    </span>
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        className={`transition-transform ${
-                            isPriceOpen ? "rotate-180" : ""
-                        }`}
-                    >
-                        <path fill="#666" d="M6 9L1 4h10z" />
-                    </svg>
-                </button>
-
-                {isPriceOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 shadow-lg z-50">
-                        {priceOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                onClick={() => {
-                                    onPriceSortChange(option.value);
-                                    setIsPriceOpen(false);
-                                }}
-                                className={`w-full px-4 py-2.5 text-sm text-left cursor-pointer hover:bg-gray-50 transition-colors ${
-                                    priceSort === option.value
                                         ? "bg-gray-900 text-white hover:bg-gray-800"
                                         : "text-gray-900"
                                 }`}
