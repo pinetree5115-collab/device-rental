@@ -5,46 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { FilterBar } from "./FilterBar";
 import { ItemCard } from "./ItemCard";
 import type { Item, Category } from "@/types/common";
-import type { BaseResponse } from "@/types/common";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+import { fetchItems } from "@/services/post.service";
+import { getMyInfoApi } from "@/services/auth_copy.service";
+import { LoadingSpinner } from "@/components/common/Spinner";
 
 interface MainPageClientProps {
     initialItems?: Item[];
     categories: Category[];
 }
-
-const fetchItems = async (
-    categoryId: number | null,
-    keyword: string = "",
-    page: number = 0,
-) => {
-    const queryString = new URLSearchParams({
-        categoryId: categoryId?.toString() || "",
-        status: "AVAILABLE",
-        keyword,
-        page: page.toString(),
-        size: "10",
-        sort: "DESC",
-    }).toString();
-
-    const response = await fetch(
-        process.env.NEXT_PUBLIC_API_URL + "/posts?" + queryString,
-        {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        },
-    );
-
-    const result: BaseResponse<Item[]> = await response.json();
-
-    if (!result.success) {
-        throw new Error("Failed to fetch items");
-    }
-
-    return result.data;
-};
 
 function MainPageClient({ initialItems, categories }: MainPageClientProps) {
     const router = useRouter();
@@ -55,16 +25,28 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
+    const { data: user } = useQuery({
+        queryKey: ["myInfo"],
+        queryFn: getMyInfoApi,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
     // Tanstack Query로 데이터 관리 (SSR 데이터를 initialData로 사용)
     const { data: items = [], isLoading } = useQuery({
         queryKey: ["items", categoryFilter, searchQuery, currentPage],
-        queryFn: () => fetchItems(categoryFilter, searchQuery, currentPage - 1),
+        queryFn: () =>
+            fetchItems(
+                searchQuery,
+                categoryFilter,
+                statusFilter || "AVAILABLE",
+                currentPage - 1,
+            ),
         initialData: initialItems,
         staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     });
 
     // 필터링 및 정렬 로직
-    const filteredItems = (items || []).filter((item) => {
+    const filteredItems = (Array.isArray(items) ? items : []).filter((item) => {
         const matchesSearch =
             item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -86,10 +68,9 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
         startIndex + itemsPerPage,
     );
 
-    const handleItemClick = (id: number) => {
-        router.push(`/items/${id}`);
-    };
-
+    if (isLoading) {
+        return <LoadingSpinner />;
+    }
     return (
         <div className="min-h-screen bg-white">
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -129,7 +110,9 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
                                 <ItemCard
                                     key={item.postId}
                                     item={item}
-                                    onClick={() => handleItemClick(item.postId)}
+                                    onClick={() =>
+                                        router.push(`/items/${item.postId}`)
+                                    }
                                 />
                             ))}
                         </div>
@@ -182,6 +165,17 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
                     )}
                 </>
             </main>
+
+            {/* Floating Action Button - Only for logged-in users */}
+            {user && (
+                <button
+                    onClick={() => router.push("items/register")}
+                    className="fixed bottom-8 right-8 cursor-pointer bg-gray-900 text-white px-5 py-3 hover:bg-gray-800 transition-all flex items-center gap-2 group shadow-lg shadow-gray-900/10"
+                >
+                    <Plus className="w-5 h-5" strokeWidth={2} />
+                    <span className="text-sm tracking-tight">새 물품 등록</span>
+                </button>
+            )}
         </div>
     );
 }
