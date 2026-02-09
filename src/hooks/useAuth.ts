@@ -59,14 +59,25 @@ export function useAuth() {
   const handleSignup = async (
     email: string,
     password: string,
-    name: string | null = null,
-    request: string | null = null
+    name: string | null,
+    address: string | null,
+    bank: string | null,
+    account: string | null,
+    phone: string | null
   ) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const data = await authService.signup({ email, password, name, request });
+      const data = await authService.signup({
+        email,
+        password,
+        name,
+        address,
+        bank,
+        account,
+        phone
+      });
 
       // 회원가입 후 자동 로그인
       login(data.user, data.token);

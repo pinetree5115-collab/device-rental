@@ -1,13 +1,63 @@
 'use client'
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+
 export default function SingnUpPage() {
-  //나중에 기능 넣기 위한 상태 정의
+  // 폼 상태 정의
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [bank, setBank] = useState('');
+  const [account, setAccount] = useState('');
+  const [phone, setPhone] = useState('');
+
   const [isCodeSent, setIsCodeSent] = useState(false); // 인증번호 발송 여부
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerified, setIsVerified] = useState(false); // 이메일 인증 완료 여부
+
+  const { signup, isLoading, error } = useAuth();
 
   const handleSendCode = () => {
-    // 인증번호 발송 로직
+    // TODO: 실제 인증번호 발송 API 연결
     setIsCodeSent(true);
+  };
+
+  const handleVerifyCode = () => {
+    // TODO: 실제 인증번호 확인 API 연결
+    setIsVerified(true);
+    alert('이메일 인증이 완료되었습니다!');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 유효성 검사
+    if (!isVerified) {
+      alert('이메일 인증을 완료해주세요.');
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      await signup(
+        email,
+        password,
+        name || null,
+        address || null,
+        bank || null,
+        account || null,
+        phone || null
+      );
+      // 성공하면 useAuth에서 자동으로 메인 페이지로 이동
+    } catch (err) {
+      console.error('회원가입 실패:', err);
+    }
   };
 
   return (
@@ -28,7 +78,14 @@ export default function SingnUpPage() {
         </div>
 
         {/* 4. HTML 태그*/}
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
+
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* 이메일 인증 섹션 */}
           <section className="border-2 border-[#edeef0] p-6 bg-white">
@@ -79,11 +136,19 @@ export default function SingnUpPage() {
                       id="authCode"
                       type="text"
                       placeholder="6자리 인증번호 입력"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
                       className="flex-1 border border-gray-300 p-2.5  focus:outline-none focus:border-red-500"
                       maxLength={6}
+                      disabled={isVerified}
                     />
-                    <button type="button" className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal">
-                      인증 확인
+                    <button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      disabled={isVerified || isLoading}
+                      className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal disabled:bg-gray-300"
+                    >
+                      {isVerified ? '인증완료' : '인증 확인'}
                     </button>
                   </div>
                 </div>
@@ -103,7 +168,10 @@ export default function SingnUpPage() {
                 <input
                   type="password"
                   placeholder="최소 8자 이상"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                  required
                 />
                 <p className="text-[11px] text-gray-400">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
               </div>
@@ -113,6 +181,73 @@ export default function SingnUpPage() {
                 <input
                   type="password"
                   placeholder="비밀번호를 다시 입력하세요"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 추가 정보 섹션 */}
+          <section className="border-2 border-[#edeef0] p-6 bg-white">
+            <div className="border-l-[3px] border-red-500 pl-3 mb-6">
+              <h2 className="text-red-500 font-bold">추가 정보</h2>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-normal text-gray-700">이름</label>
+                <input
+                  type="text"
+                  placeholder="이름을 입력하세요"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-normal text-gray-700">주소</label>
+                <input
+                  type="text"
+                  placeholder="주소를 입력하세요"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-normal text-gray-700">전화번호</label>
+                <input
+                  type="tel"
+                  placeholder="전화번호를 입력하세요 (예: 01012345678)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-normal text-gray-700">은행명</label>
+                <input
+                  type="text"
+                  placeholder="은행명을 입력하세요"
+                  value={bank}
+                  onChange={(e) => setBank(e.target.value)}
+                  className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-normal text-gray-700">계좌번호</label>
+                <input
+                  type="text"
+                  placeholder="계좌번호를 입력하세요"
+                  value={account}
+                  onChange={(e) => setAccount(e.target.value)}
                   className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
                 />
               </div>
@@ -121,11 +256,19 @@ export default function SingnUpPage() {
 
           {/* 하단 버튼 구역 */}
           <div className="flex gap-3 pt-4 justify-end">
-            <button type="button" className="border border-gray-300 py-3.5  text-gray-600 font-normal hover:bg-gray-50 transition-colors px-12">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="border border-gray-300 py-3.5  text-gray-600 font-normal hover:bg-gray-50 transition-colors px-12"
+            >
               취소
             </button>
-            <button type="submit" className="bg-[#FF4D4D] text-white py-3.5 font-normal hover:bg-red-600 transition-colors px-12">
-              회원가입 완료
+            <button
+              type="submit"
+              disabled={isLoading || !isVerified}
+              className="bg-[#FF4D4D] text-white py-3.5 font-normal hover:bg-red-600 transition-colors px-12 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {isLoading ? '처리중...' : '회원가입 완료'}
             </button>
           </div>
 
