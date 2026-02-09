@@ -95,7 +95,9 @@ export default function SingnUpPage() {
 
             <div className="space-y-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="email" className="text-xs font-normal text-gray-700">이메일 *</label>
+                <label htmlFor="email" className="text-xs font-normal text-gray-700">
+                  이메일 <span className="text-[#FB2C36]">*</span>
+                </label>
                 <div className="flex gap-2">
                   <input
                     id="email"
@@ -129,7 +131,7 @@ export default function SingnUpPage() {
               {isCodeSent && (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
-                    인증번호 * <span className="text-red-500 ml-1">2:51</span>
+                    인증번호 <span className="text-[#FB2C36]">*</span> <span className="text-red-500 ml-1">2:51</span>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -164,7 +166,9 @@ export default function SingnUpPage() {
 
             <div className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-normal text-gray-700">비밀번호 *</label>
+                <label className="text-xs font-normal text-gray-700">
+                  비밀번호 <span className="text-[#FB2C36]">*</span>
+                </label>
                 <input
                   type="password"
                   placeholder="최소 8자 이상"
@@ -173,11 +177,13 @@ export default function SingnUpPage() {
                   className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
                   required
                 />
-                <p className="text-[11px] text-gray-400">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
+                <p className="text-[11px] text-[#FB2C36]">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-normal text-gray-700">비밀번호 확인 *</label>
+                <label className="text-xs font-normal text-gray-700">
+                  비밀번호 확인 <span className="text-[#FB2C36]">*</span>
+                </label>
                 <input
                   type="password"
                   placeholder="비밀번호를 다시 입력하세요"
