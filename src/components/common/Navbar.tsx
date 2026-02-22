@@ -87,7 +87,7 @@ export function Navbar() {
                                         </button>
                                         <button
                                             onClick={() =>
-                                                onNavigate("rent/history")
+                                                onNavigate("items/rent/history")
                                             }
                                             className="text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
                                         >
