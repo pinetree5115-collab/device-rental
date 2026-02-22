@@ -4,26 +4,42 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FilterBar } from "./FilterBar";
 import { ItemCard } from "./ItemCard";
-import type { Item, Category } from "@/types/common";
+import type { Category } from "@/types/common";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import type { FetchItemsResponse } from "@/services/post.service";
 import { fetchItems } from "@/services/post.service";
 import { getMyInfoApi } from "@/services/auth_copy.service";
 import { LoadingSpinner } from "@/components/common/Spinner";
 
 interface MainPageClientProps {
-    initialItems?: Item[];
+    initialItems?: FetchItemsResponse;
     categories: Category[];
 }
 
 function MainPageClient({ initialItems, categories }: MainPageClientProps) {
     const router = useRouter();
 
+    const [searchInput, setSearchInput] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 6;
+
+    const handleSearchSubmit = () => {
+        setCurrentPage(1);
+        setSearchQuery(searchInput.trim());
+    };
+
+    const handleStatusFilterChange = (value: string | null) => {
+        setCurrentPage(1);
+        setStatusFilter(value);
+    };
+
+    const handleCategoryFilterChange = (value: number | null) => {
+        setCurrentPage(1);
+        setCategoryFilter(value);
+    };
 
     const { data: user } = useQuery({
         queryKey: ["myInfo"],
@@ -32,21 +48,28 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
     });
 
     // Tanstack Query로 데이터 관리 (SSR 데이터를 initialData로 사용)
-    const { data: items = [], isLoading } = useQuery({
-        queryKey: ["items", categoryFilter, searchQuery, currentPage],
+    const { data, isLoading } = useQuery<FetchItemsResponse>({
+        queryKey: [
+            "items",
+            categoryFilter,
+            searchQuery,
+            currentPage,
+            statusFilter,
+        ],
         queryFn: () =>
             fetchItems(
                 searchQuery,
                 categoryFilter,
-                statusFilter || "AVAILABLE",
+                statusFilter,
                 currentPage - 1,
             ),
-        initialData: initialItems,
         staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     });
 
+    const items = data?.content ?? [];
+
     // 필터링 및 정렬 로직
-    const filteredItems = (Array.isArray(items) ? items : []).filter((item) => {
+    const filteredItems = items.filter((item) => {
         const matchesSearch =
             item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -60,13 +83,9 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
         return 0; // 최신순 (기본 순서 유지)
     });
 
-    // Pagination
-    const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedItems = sortedItems.slice(
-        startIndex,
-        startIndex + itemsPerPage,
-    );
+    // Pagination (server-side pagination result)
+    const totalPages = data?.page.totalPages ?? 0;
+    const paginatedItems = sortedItems;
 
     if (isLoading) {
         return <LoadingSpinner />;
@@ -84,12 +103,13 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
                 </div>
 
                 <FilterBar
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
+                    searchQuery={searchInput}
+                    onSearchChange={setSearchInput}
+                    onSearchSubmit={handleSearchSubmit}
                     statusFilter={statusFilter}
-                    onStatusFilterChange={setStatusFilter}
+                    onStatusFilterChange={handleStatusFilterChange}
                     categoryFilter={categoryFilter}
-                    onCategoryFilterChange={setCategoryFilter}
+                    onCategoryFilterChange={handleCategoryFilterChange}
                     categories={categories}
                 />
 
