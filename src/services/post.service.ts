@@ -49,10 +49,14 @@ export const fetchCategories = async () => {
  *
  * @returns Item[]
  */
-interface fetchItemResponse {
+export interface FetchItemsResponse {
     content: Item[];
-    totalPages: number;
-    totalElements: number;
+    page: {
+        size: number;
+        number: number;
+        totalElements: number;
+        totalPages: number;
+    };
 }
 export const fetchItems = async (
     keyword: string = "",
@@ -66,7 +70,7 @@ export const fetchItems = async (
             status: status || "",
             keyword,
             page: page.toString(),
-            size: "10",
+            size: "6",
             sort: "DESC",
         }).toString();
 
@@ -84,10 +88,10 @@ export const fetchItems = async (
             throw new Error("Failed to fetch items");
         }
 
-        const result: BaseResponse<fetchItemResponse> = await response.json();
+        const result: BaseResponse<FetchItemsResponse> = await response.json();
 
         if (result.success) {
-            return result.data.content;
+            return result.data;
         }
 
         throw new Error("Failed to fetch items");

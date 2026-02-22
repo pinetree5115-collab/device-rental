@@ -1,5 +1,6 @@
-import MainPageClient from "./_component/MainPageClient";
+import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { fetchCategories, fetchItems } from "@/services/post.service";
+import HydrateClient from "./_component/HydrateClient";
 
 async function Home() {
     const categories = await fetchCategories();
@@ -8,9 +9,18 @@ async function Home() {
         return <div>No categories available.</div>;
     }
 
-    const items = await fetchItems("", null, null, 0);
+    // const itemsResponse = await fetchItems("", null, null, 0);
 
-    return <MainPageClient initialItems={items} categories={categories} />;
+    const queryClient = new QueryClient();
+
+    await queryClient.prefetchQuery({
+        queryKey: ["items", null, "", 1, null],
+        queryFn: () => fetchItems("", null, null, 0),
+    });
+
+    return (
+        <HydrateClient state={dehydrate(queryClient)} categories={categories} />
+    );
 }
 
 export default Home;

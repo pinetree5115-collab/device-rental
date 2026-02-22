@@ -5,6 +5,7 @@ import { useClickOutside } from "@/hooks/common";
 interface FilterBarProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
+    onSearchSubmit: () => void;
     statusFilter: string | null;
     onStatusFilterChange: (value: string | null) => void;
     categoryFilter: number | null;
@@ -15,6 +16,7 @@ interface FilterBarProps {
 export function FilterBar({
     searchQuery,
     onSearchChange,
+    onSearchSubmit,
     statusFilter,
     onStatusFilterChange,
     categoryFilter,
@@ -81,6 +83,11 @@ export function FilterBar({
                     placeholder="물품명 검색"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            onSearchSubmit();
+                        }
+                    }}
                     className="w-full py-2.5 border-none bg-white text-sm focus:outline-none"
                 />
             </div>
