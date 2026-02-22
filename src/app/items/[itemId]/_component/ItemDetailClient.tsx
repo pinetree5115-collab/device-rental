@@ -3,9 +3,12 @@
 import { getMyInfoApi } from "@/services/auth_copy.service";
 import { Item } from "@/types/common";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 function ItemDetailClient({ item }: { item: Item }) {
+    const router = useRouter();
+
     const { data: user } = useQuery({
         queryKey: ["myInfo"],
         queryFn: getMyInfoApi,
@@ -105,7 +108,7 @@ function ItemDetailClient({ item }: { item: Item }) {
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
                             <span className="text-gray-900 w-24">
-                                수령 방식:
+                                수령 가능 방식
                             </span>
                             <div className="flex gap-2">
                                 {item.isParcel && (
@@ -122,31 +125,16 @@ function ItemDetailClient({ item }: { item: Item }) {
                         </div>
                     </div>
 
-                    {/* Quantity Selector */}
-                    <div className="flex items-center gap-4 pt-4">
-                        <span className="text-gray-900 w-24">대여 일수:</span>
-                        <div className="flex items-center border-2 border-gray-300">
-                            <button className="w-10 h-10 cursor-pointer hover:bg-red-500 hover:text-white transition-colors">
-                                -
-                            </button>
-                            <input
-                                type="number"
-                                value="1"
-                                readOnly
-                                className="w-16 h-10 text-center border-x-2 border-gray-300 outline-none flex items-center justify-center"
-                            />
-                            <button className="w-10 h-10 cursor-pointer bg-red-500 text-white hover:bg-red-600 transition-colors">
-                                +
-                            </button>
-                        </div>
-                    </div>
-
                     {/* Action Buttons */}
                     <div className="flex gap-4 pt-6">
                         {canRent ? (
                             <>
                                 <button
-                                    onClick={() => {}}
+                                    onClick={() => {
+                                        router.push(
+                                            `/items/rent/${item.postId}`,
+                                        );
+                                    }}
                                     className="flex-1 px-8 py-3 cursor-pointer bg-red-500 text-white hover:bg-red-600 transition-colors"
                                 >
                                     지금 대여하기

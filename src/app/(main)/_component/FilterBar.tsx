@@ -37,6 +37,8 @@ export function FilterBar({
         { value: null, label: "전체 상태" },
         { value: "AVAILABLE", label: "대여 가능" },
         { value: "RESERVED", label: "대여 중" },
+        { value: "HIDDEN", label: "대여 불가능" },
+        { value: "ENDED", label: "대여 종료" },
     ];
 
     const categoryOptions = [

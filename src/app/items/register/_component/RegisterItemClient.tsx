@@ -509,7 +509,7 @@ function RegisterItemClient({ categories }: { categories: Category[] }) {
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 px-6 py-4 bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+                        className={`flex-1 px-6 py-4 bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
                     >
                         {isSubmitting ? "등록 중..." : "등록 완료"}
                     </button>

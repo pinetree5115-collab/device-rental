@@ -1,48 +1,55 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Upload, ChevronDown } from "lucide-react";
-import { Item } from "@/app/(main)/_component/MainPageClient";
+import { Category, Item } from "@/types/common";
+import { createImgsApi } from "@/services/post.service";
 
 interface ItemEditModalProps {
     item: Item;
+    categories: Category[];
     onClose: () => void;
-    onSubmit: (itemId: string, data: EditItemData) => void;
+    onSubmit: (itemId: number, data: EditItemData) => void | Promise<void>;
 }
 
 export interface EditItemData {
-    name: string;
+    categoryId: number;
+    title: string;
     description: string;
-    detailedDescription: string;
-    price: number;
-    category: "갤럭시 울트라" | "아이폰" | "캠코더" | "DSLR";
-    availablePeriod: string;
-    pickupMethods: string[];
-    image?: string;
+    pricePerDay: number;
+    maxRentalDays: number;
+    isMeetup: boolean;
+    isParcel: boolean;
+    status: string;
+    imageUrls: string[];
 }
 
-function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
+function ItemEditModal({
+    item,
+    categories,
+    onClose,
+    onSubmit,
+}: ItemEditModalProps) {
     const [formData, setFormData] = useState<EditItemData>({
-        name: item.name,
+        title: item.title,
         description: item.description,
-        detailedDescription: item.detailedDescription || "",
-        price: item.price,
-        category: item.category as
-            | "갤럭시 울트라"
-            | "아이폰"
-            | "캠코더"
-            | "DSLR",
-        availablePeriod: item.availablePeriod || "",
-        pickupMethods: item.pickupMethod.includes("/")
-            ? item.pickupMethod.split(" / ").map((m) => m.trim())
-            : [item.pickupMethod],
-        image: item.image,
+        pricePerDay: item.pricePerDay,
+        categoryId:
+            categories.find((category) => category.name === item.categoryName)
+                ?.id || 1,
+        maxRentalDays: item.maxRentalDays,
+        isMeetup: item.isMeetup,
+        isParcel: item.isParcel,
+        status: item.status,
+        imageUrls: item.imageUrls,
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [images, setImages] = useState<File[]>([]);
+    const [existingImageUrls, setExistingImageUrls] = useState<string[]>(
+        item.imageUrls,
+    );
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const categoryRef = useRef<HTMLDivElement>(null);
-
-    const categories = ["갤럭시 울트라", "아이폰", "캠코더", "DSLR"];
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -61,7 +68,7 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
 
     const handleInputChange = (
         field: keyof EditItemData,
-        value: string | number,
+        value: string | number | boolean,
     ) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         // Clear error when user starts typing
@@ -70,26 +77,13 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
         }
     };
 
-    const handlePickupMethodToggle = (method: string) => {
-        setFormData((prev) => {
-            const currentMethods = prev.pickupMethods;
-            if (currentMethods.includes(method)) {
-                return {
-                    ...prev,
-                    pickupMethods: currentMethods.filter((m) => m !== method),
-                };
-            } else {
-                if (currentMethods.length < 2) {
-                    return {
-                        ...prev,
-                        pickupMethods: [...currentMethods, method],
-                    };
-                }
-                return prev;
-            }
-        });
-        if (errors.pickupMethods) {
-            setErrors((prev) => ({ ...prev, pickupMethods: "" }));
+    const handlePickupMethodToggle = (method: "isMeetup" | "isParcel") => {
+        setFormData((prev) => ({
+            ...prev,
+            [method]: !prev[method],
+        }));
+        if (errors.deliveryMethods) {
+            setErrors((prev) => ({ ...prev, deliveryMethods: "" }));
         }
     };
 
@@ -97,13 +91,27 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
         const files = e.target.files;
         if (files) {
             const newFiles = Array.from(files);
-            const totalFiles = [...images, ...newFiles];
+            const availableSlots = Math.max(0, 5 - existingImageUrls.length);
 
-            if (totalFiles.length > 5) {
+            if (availableSlots === 0) {
+                alert("기존 이미지를 삭제한 뒤 새 이미지를 추가해주세요.");
+                return;
+            }
+
+            const totalFiles = [...images, ...newFiles].slice(
+                0,
+                availableSlots,
+            );
+
+            if (images.length + newFiles.length > availableSlots) {
                 alert("최대 5개의 이미지만 업로드할 수 있습니다.");
-                setImages(totalFiles.slice(0, 5));
+                setImages(totalFiles);
             } else {
                 setImages(totalFiles);
+            }
+
+            if (errors.imageUrls) {
+                setErrors((prev) => ({ ...prev, imageUrls: "" }));
             }
         }
     };
@@ -112,39 +120,58 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
         setImages((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const handleExistingImageRemove = (index: number) => {
+        setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.name.trim()) {
-            newErrors.name = "물품명을 입력해주세요";
+        if (!formData.title.trim()) {
+            newErrors.title = "물품명을 입력해주세요";
         }
         if (!formData.description.trim()) {
             newErrors.description = "간단한 설명을 입력해주세요";
         }
-        if (!formData.detailedDescription.trim()) {
-            newErrors.detailedDescription = "상세 설명을 입력해주세요";
+        if (formData.pricePerDay <= 0) {
+            newErrors.pricePerDay = "올바른 대여 금액을 입력해주세요";
         }
-        if (formData.price <= 0) {
-            newErrors.price = "올바른 대여 금액을 입력해주세요";
+        if (!formData.categoryId) {
+            newErrors.categoryId = "카테고리를 선택해주세요";
         }
-        if (!formData.category) {
-            newErrors.category = "카테고리를 선택해주세요";
+        if (formData.maxRentalDays <= 0) {
+            newErrors.maxRentalDays = "최대 대여 일수를 입력해주세요";
         }
-        if (!formData.availablePeriod.trim()) {
-            newErrors.availablePeriod = "대여 가능 기간을 입력해주세요";
+        if (!formData.isMeetup && !formData.isParcel) {
+            newErrors.deliveryMethods = "최소 1개의 수령 방식을 선택해주세요";
         }
-        if (formData.pickupMethods.length === 0) {
-            newErrors.pickupMethods = "최소 1개의 수령 방식을 선택해주세요";
+        if (existingImageUrls.length + images.length === 0) {
+            newErrors.imageUrls = "물품 이미지를 최소 1개 이상 유지해주세요";
         }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         if (validateForm()) {
-            onSubmit(item.id, formData);
+            try {
+                setIsSubmitting(true);
+
+                let uploadedImageUrls: string[] = [];
+                if (images.length > 0) {
+                    uploadedImageUrls = await createImgsApi(images);
+                }
+
+                const imageUrls = [...existingImageUrls, ...uploadedImageUrls];
+                await onSubmit(item.postId, { ...formData, imageUrls });
+            } catch (error) {
+                console.error("Failed to submit edited item:", error);
+                alert("물품 수정 중 오류가 발생했습니다. 다시 시도해주세요.");
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -179,20 +206,20 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                         </label>
                         <input
                             type="text"
-                            value={formData.name}
+                            value={formData.title}
                             onChange={(e) =>
-                                handleInputChange("name", e.target.value)
+                                handleInputChange("title", e.target.value)
                             }
                             placeholder="예: 맥북 프로 16인치 2023"
                             className={`w-full px-4 py-2.5 border ${
-                                errors.name
+                                errors.title
                                     ? "border-red-500"
                                     : "border-gray-300"
                             } focus:outline-none focus:border-gray-900 transition-colors`}
                         />
-                        {errors.name && (
+                        {errors.title && (
                             <p className="text-red-500 text-sm mt-1">
-                                {errors.name}
+                                {errors.title}
                             </p>
                         )}
                     </div>
@@ -208,21 +235,26 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                 onClick={() =>
                                     setIsCategoryOpen(!isCategoryOpen)
                                 }
-                                className={`w-full px-4 py-2.5 border ${
-                                    errors.category
+                                className={`cursor-pointer w-full px-4 py-2.5 border ${
+                                    errors.categoryName
                                         ? "border-red-500"
                                         : "border-gray-300"
                                 } focus:outline-none focus:border-gray-900 transition-colors bg-white flex items-center justify-between`}
                             >
                                 <span
                                     className={
-                                        formData.category
+                                        formData.categoryId
                                             ? "text-gray-900"
                                             : "text-gray-400"
                                     }
                                 >
-                                    {formData.category ||
-                                        "카테고리를 선택해주세요"}
+                                    {formData.categoryId
+                                        ? categories.find(
+                                              (cat) =>
+                                                  cat.id ===
+                                                  formData.categoryId,
+                                          )?.name
+                                        : "카테고리를 선택해주세요"}
                                 </span>
                                 <ChevronDown
                                     className={`w-5 h-5 text-gray-500 transition-transform ${isCategoryOpen ? "rotate-180" : ""}`}
@@ -232,30 +264,30 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                 <div className="absolute z-10 w-full mt-1 border border-gray-300 bg-white shadow-lg">
                                     {categories.map((cat) => (
                                         <button
-                                            key={cat}
+                                            key={cat.id}
                                             type="button"
                                             onClick={() => {
                                                 handleInputChange(
-                                                    "category",
-                                                    cat,
+                                                    "categoryId",
+                                                    cat.id,
                                                 );
                                                 setIsCategoryOpen(false);
                                             }}
-                                            className={`w-full px-4 py-2.5 text-left transition-colors ${
-                                                formData.category === cat
+                                            className={`cursor-pointer w-full px-4 py-2.5 text-left transition-colors ${
+                                                formData.categoryId === cat.id
                                                     ? "bg-gray-900 text-white"
                                                     : "text-gray-900 hover:bg-gray-100"
                                             }`}
                                         >
-                                            {cat}
+                                            {cat.name}
                                         </button>
                                     ))}
                                 </div>
                             )}
                         </div>
-                        {errors.category && (
+                        {errors.categoryName && (
                             <p className="text-red-500 text-sm mt-1">
-                                {errors.category}
+                                {errors.categoryName}
                             </p>
                         )}
                     </div>
@@ -285,34 +317,6 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                         )}
                     </div>
 
-                    {/* Detailed Description */}
-                    <div>
-                        <label className="block text-gray-900 mb-2">
-                            상세 설명 <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            value={formData.detailedDescription}
-                            onChange={(e) =>
-                                handleInputChange(
-                                    "detailedDescription",
-                                    e.target.value,
-                                )
-                            }
-                            placeholder="물품의 상세 정보, 포함 구성품, 상태 등을 자세히 작성해주세요"
-                            rows={6}
-                            className={`w-full px-4 py-2.5 border ${
-                                errors.detailedDescription
-                                    ? "border-red-500"
-                                    : "border-gray-300"
-                            } focus:outline-none focus:border-gray-900 transition-colors resize-none`}
-                        />
-                        {errors.detailedDescription && (
-                            <p className="text-red-500 text-sm mt-1">
-                                {errors.detailedDescription}
-                            </p>
-                        )}
-                    </div>
-
                     {/* Price */}
                     <div>
                         <label className="block text-gray-900 mb-2">
@@ -322,16 +326,16 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                         <div className="relative">
                             <input
                                 type="number"
-                                value={formData.price || ""}
+                                value={formData.pricePerDay || ""}
                                 onChange={(e) =>
                                     handleInputChange(
-                                        "price",
+                                        "pricePerDay",
                                         parseInt(e.target.value) || 0,
                                     )
                                 }
                                 placeholder="0"
                                 className={`w-full px-4 py-2.5 border ${
-                                    errors.price
+                                    errors.pricePerDay
                                         ? "border-red-500"
                                         : "border-gray-300"
                                 } focus:outline-none focus:border-gray-900 transition-colors`}
@@ -340,38 +344,38 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                 원/일
                             </span>
                         </div>
-                        {errors.price && (
+                        {errors.pricePerDay && (
                             <p className="text-red-500 text-sm mt-1">
-                                {errors.price}
+                                {errors.pricePerDay}
                             </p>
                         )}
                     </div>
 
-                    {/* Available Period */}
+                    {/* Max Rental Days */}
                     <div>
                         <label className="block text-gray-900 mb-2">
-                            대여 가능 기간{" "}
+                            최대 대여 일수{" "}
                             <span className="text-red-500">*</span>
                         </label>
                         <input
-                            type="text"
-                            value={formData.availablePeriod}
+                            type="number"
+                            value={formData.maxRentalDays || ""}
                             onChange={(e) =>
                                 handleInputChange(
-                                    "availablePeriod",
-                                    e.target.value,
+                                    "maxRentalDays",
+                                    parseInt(e.target.value) || 0,
                                 )
                             }
-                            placeholder="예: 2024년 1월 ~ 2024년 12월"
+                            placeholder="예: 7"
                             className={`w-full px-4 py-2.5 border ${
-                                errors.availablePeriod
+                                errors.maxRentalDays
                                     ? "border-red-500"
                                     : "border-gray-300"
                             } focus:outline-none focus:border-gray-900 transition-colors`}
                         />
-                        {errors.availablePeriod && (
+                        {errors.maxRentalDays && (
                             <p className="text-red-500 text-sm mt-1">
-                                {errors.availablePeriod}
+                                {errors.maxRentalDays}
                             </p>
                         )}
                     </div>
@@ -382,16 +386,16 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                             수령 방식 <span className="text-red-500">*</span>
                         </label>
                         <p className="text-gray-500 text-sm mb-3">
-                            최소 1개, 최대 2개까지 선택 가능합니다
+                            최소 1개를 선택해주세요
                         </p>
                         <div className="flex flex-wrap gap-3">
                             <button
                                 type="button"
                                 onClick={() =>
-                                    handlePickupMethodToggle("택배 수령")
+                                    handlePickupMethodToggle("isParcel")
                                 }
                                 className={`px-6 py-3 border transition-colors ${
-                                    formData.pickupMethods.includes("택배 수령")
+                                    formData.isParcel
                                         ? "border-gray-900 bg-gray-900 text-white"
                                         : "border-gray-300 bg-white text-gray-700 hover:border-gray-900"
                                 }`}
@@ -401,12 +405,10 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    handlePickupMethodToggle("직접 만나서 수령")
+                                    handlePickupMethodToggle("isMeetup")
                                 }
                                 className={`px-6 py-3 border transition-colors ${
-                                    formData.pickupMethods.includes(
-                                        "직접 만나서 수령",
-                                    )
+                                    formData.isMeetup
                                         ? "border-gray-900 bg-gray-900 text-white"
                                         : "border-gray-300 bg-white text-gray-700 hover:border-gray-900"
                                 }`}
@@ -414,17 +416,17 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                 직접 만나서 수령
                             </button>
                         </div>
-                        {errors.pickupMethods && (
+                        {errors.deliveryMethods && (
                             <p className="text-red-500 text-sm mt-1">
-                                {errors.pickupMethods}
+                                {errors.deliveryMethods}
                             </p>
                         )}
                     </div>
 
-                    {/* Image Upload (Optional) */}
+                    {/* Image Upload */}
                     <div>
                         <label className="block text-gray-900 mb-2">
-                            물품 이미지
+                            물품 이미지 <span className="text-red-500">*</span>
                         </label>
                         <div className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors p-6 text-center">
                             <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
@@ -449,10 +451,42 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                 파일 선택
                             </label>
 
+                            {existingImageUrls.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-gray-600 text-sm mb-2">
+                                        기존 이미지 ({existingImageUrls.length}
+                                        개)
+                                    </p>
+                                    <div className="space-y-2">
+                                        {existingImageUrls.map((url, index) => (
+                                            <div
+                                                key={`${url}-${index}`}
+                                                className="flex items-center justify-between bg-gray-50 px-3 py-2"
+                                            >
+                                                <span className="text-gray-700 text-xs truncate flex-1">
+                                                    {url}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleExistingImageRemove(
+                                                            index,
+                                                        )
+                                                    }
+                                                    className="ml-3 text-red-500 hover:text-red-700 transition-colors"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {images.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <p className="text-gray-600 text-sm mb-2">
-                                        {images.length}개 중 5개 선택됨
+                                        새 이미지 ({images.length}개)
                                     </p>
                                     <div className="space-y-2">
                                         {images.map((image, index) => (
@@ -477,6 +511,12 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                                     </div>
                                 </div>
                             )}
+
+                            {errors.imageUrls && (
+                                <p className="text-red-500 text-sm mt-3">
+                                    {errors.imageUrls}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </form>
@@ -486,16 +526,16 @@ function ItemEditModal({ item, onClose, onSubmit }: ItemEditModalProps) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="cursor-pointer flex-1 px-6 py-3 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                         취소
                     </button>
                     <button
                         type="button"
-                        onClick={handleSubmit}
-                        className="flex-1 px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 transition-colors"
+                        onClick={() => void handleSubmit()}
+                        className={`cursor-pointer flex-1 px-6 py-3 bg-gray-900 text-white hover:bg-gray-800 transition-colors ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
                     >
-                        수정 완료
+                        {isSubmitting ? "수정 중..." : "수정 완료"}
                     </button>
                 </div>
             </div>

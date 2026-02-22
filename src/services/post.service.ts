@@ -1,4 +1,5 @@
 import { NewItemData } from "@/app/items/register/_component/RegisterItemClient";
+import { RentalData } from "@/app/items/rent/[itemId]/_component/ItemRentClient";
 import { BaseResponse, Category, Item } from "@/types/common";
 
 /**
@@ -175,6 +176,101 @@ export const createPostApi = async (
         throw new Error("Failed to create post");
     } catch (err) {
         console.error("Error creating post:", err);
+        throw err;
+    }
+};
+
+/**
+ * 내 물품 목록을 가져오는 함수
+ * @returns Item[]
+ */
+interface FetchMyItemsOptions {
+    baseUrl?: string;
+    cookie?: string;
+}
+interface FetchMyItemsResponse {
+    content: Item[];
+    totalPages: number;
+    totalElements: number;
+}
+export const fetchMyItems = async (options?: FetchMyItemsOptions) => {
+    try {
+        const requestUrl = options?.baseUrl
+            ? `${options.baseUrl}/api/items/my`
+            : "/api/items/my";
+
+        const response = await fetch(requestUrl, {
+            method: "GET",
+            ...(options?.baseUrl
+                ? {
+                      headers: {
+                          ...(options.cookie
+                              ? {
+                                    Cookie: options.cookie,
+                                }
+                              : {}),
+                      },
+                      cache: "no-store" as const,
+                  }
+                : { credentials: "include" as RequestCredentials }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch my items");
+        }
+
+        const result: BaseResponse<FetchMyItemsResponse> =
+            await response.json();
+
+        if (result.success) {
+            return result.data.content;
+        }
+
+        throw new Error("Failed to fetch my items");
+    } catch (err) {
+        console.error("Failed to fetch my items:::", err);
+        throw err;
+    }
+};
+
+/**
+ * 물품 대여 요청 API 호출 함수
+ *
+ * @param data: RentalData
+ *
+ * @returns rentalId
+ */
+export interface CreateRentalResponse {
+    rentalId: number;
+}
+export const createRentalApi = async (data: RentalData) => {
+    try {
+        const response = await fetch("/api/rentals", {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result: BaseResponse<CreateRentalResponse> | null = await response
+            .json()
+            .catch(() => null);
+
+        if (!response.ok) {
+            throw new Error(
+                result?.message || "Failed to create rental request",
+            );
+        }
+
+        if (result?.success && result.data) {
+            return result.data.rentalId;
+        }
+
+        throw new Error(result?.message || "Failed to create rental request");
+    } catch (err) {
+        console.error("Error creating rental request:", err);
         throw err;
     }
 };
