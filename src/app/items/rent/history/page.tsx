@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Calendar, Clock, Package } from "lucide-react";
+import { Calendar, Clock, Package } from "lucide-react";
 import { useState } from "react";
 
 interface RentalHistoryPageProps {
@@ -21,6 +21,40 @@ interface RentalRecord {
     ownerName: string;
     type: "borrowed" | "lent"; // borrowed: 내가 대여 받음, lent: 내가 대여 해줌
 }
+
+interface Coupon {
+    id: string;
+    name: string;
+    discount: number;
+    type: "percentage" | "fixed";
+    minAmount: number;
+}
+
+const mockCoupons: Coupon[] = [
+    {
+        id: "1",
+        name: "신규 회원 10% 할인",
+        discount: 10,
+        type: "percentage",
+        minAmount: 10000,
+    },
+    {
+        id: "2",
+        name: "5,000원 할인 쿠폰",
+        discount: 5000,
+        type: "fixed",
+        minAmount: 20000,
+    },
+    {
+        id: "3",
+        name: "20% 할인 쿠폰",
+        discount: 20,
+        type: "percentage",
+        minAmount: 30000,
+    },
+];
+
+const userPoints = 15000;
 
 // Mock rental history data
 const mockRentalHistory: RentalRecord[] = [
@@ -136,36 +170,135 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
     const [activeTab, setActiveTab] = useState<"borrowed" | "lent">("borrowed");
     const [showStartModal, setShowStartModal] = useState(false);
     const [showReturnModal, setShowReturnModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [usedPoint, setUsedPoint] = useState(0);
+    const [pointLimitMessage, setPointLimitMessage] = useState("");
+    const [selectedCouponId, setSelectedCouponId] = useState<string | null>(
+        null,
+    );
+    const [isPaying, setIsPaying] = useState(false);
     const [selectedRental, setSelectedRental] = useState<RentalRecord | null>(
         null,
     );
+
+    const isRentalNotStarted = (rental: RentalRecord) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const rentalStartDate = new Date(`${rental.startDate}T00:00:00`);
+        return today < rentalStartDate;
+    };
+
+    const canCancelBorrowedRental = (rental: RentalRecord) => {
+        if (rental.type !== "borrowed") {
+            return false;
+        }
+
+        if (rental.status === "결제 보관 중") {
+            return true;
+        }
+
+        return rental.status === "대여 중" && isRentalNotStarted(rental);
+    };
 
     const handleStartRental = (rentalId: string) => {
         const rental = rentals.find((r) => r.id === rentalId);
         if (rental) {
             setSelectedRental(rental);
+            setUsedPoint(0);
+            setPointLimitMessage("");
+            setSelectedCouponId(null);
             setShowStartModal(true);
         }
     };
 
-    const confirmStartRental = () => {
-        if (selectedRental) {
-            setRentals((prev) =>
-                prev.map((rental) =>
-                    rental.id === selectedRental.id
-                        ? { ...rental, status: "대여 중" as const }
-                        : rental,
-                ),
+    const handlePointInputChange = (value: string, maxPoint: number) => {
+        const onlyDigits = value.replace(/\D/g, "");
+        const parsedPoint = Number(onlyDigits || 0);
+
+        if (parsedPoint > userPoints || parsedPoint > maxPoint) {
+            setUsedPoint(maxPoint);
+            setPointLimitMessage(
+                `최대 사용 가능 포인트는 ${maxPoint.toLocaleString()}P입니다.`,
             );
+            return;
+        }
+
+        setPointLimitMessage("");
+        setUsedPoint(parsedPoint);
+    };
+
+    const confirmStartRental = async () => {
+        if (!selectedRental) {
+            return;
+        }
+
+        const selectedCoupon = mockCoupons.find(
+            (coupon) => coupon.id === selectedCouponId,
+        );
+        let couponDiscount = 0;
+
+        if (
+            selectedCoupon &&
+            selectedRental.totalPrice >= selectedCoupon.minAmount
+        ) {
+            if (selectedCoupon.type === "percentage") {
+                couponDiscount = Math.floor(
+                    selectedRental.totalPrice * (selectedCoupon.discount / 100),
+                );
+            } else {
+                couponDiscount = selectedCoupon.discount;
+            }
+        }
+
+        const priceAfterCoupon = selectedRental.totalPrice - couponDiscount;
+        const maxUsablePoint = Math.min(
+            userPoints,
+            Math.floor(priceAfterCoupon * 0.5),
+        );
+        const safeUsedPoint = Math.max(0, Math.min(usedPoint, maxUsablePoint));
+        const finalAmount = priceAfterCoupon - safeUsedPoint;
+
+        try {
+            setIsPaying(true);
+
+            const response = await fetch("/api/rentals/payment-test", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    rentalId: 2,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("결제 테스트 API 호출에 실패했습니다.");
+            }
+
+            // setRentals((prev) =>
+            //     prev.map((rental) =>
+            //         rental.id === selectedRental.id
+            //             ? { ...rental, status: "대여 중" as const }
+            //             : rental,
+            //     ),
+            // );
             setShowStartModal(false);
             setSelectedRental(null);
-            alert("대여가 시작되었습니다.");
+            alert("결제가 완료되어 대여가 확정되었습니다.");
+        } catch (error) {
+            console.error(error);
+            alert("결제 테스트 API 호출 중 오류가 발생했습니다.");
+        } finally {
+            setIsPaying(false);
         }
     };
 
     const cancelStartRental = () => {
         setShowStartModal(false);
         setSelectedRental(null);
+        setPointLimitMessage("");
     };
 
     const handleConfirmReturn = (rentalId: string) => {
@@ -193,6 +326,46 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
 
     const cancelReturn = () => {
         setShowReturnModal(false);
+        setSelectedRental(null);
+    };
+
+    const handleCancelRental = (rentalId: string) => {
+        const rental = rentals.find((r) => r.id === rentalId);
+        if (rental) {
+            setSelectedRental(rental);
+            setShowCancelModal(true);
+        }
+    };
+
+    const confirmCancelRental = async () => {
+        if (!selectedRental) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/rentals/2/cancel`, {
+                method: "POST",
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                throw new Error("대여 취소 API 호출에 실패했습니다.");
+            }
+
+            setRentals((prev) =>
+                prev.filter((rental) => rental.id !== selectedRental.id),
+            );
+            setShowCancelModal(false);
+            setSelectedRental(null);
+            alert("대여가 취소되었습니다.");
+        } catch (error) {
+            console.error(error);
+            alert("대여 취소 중 오류가 발생했습니다.");
+        }
+    };
+
+    const cancelCancelRental = () => {
+        setShowCancelModal(false);
         setSelectedRental(null);
     };
 
@@ -228,6 +401,30 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
     const filteredRentals = rentals.filter(
         (rental) => rental.type === activeTab,
     );
+    const selectedCoupon = mockCoupons.find(
+        (coupon) => coupon.id === selectedCouponId,
+    );
+    let couponDiscount = 0;
+    if (
+        selectedRental &&
+        selectedCoupon &&
+        selectedRental.totalPrice >= selectedCoupon.minAmount
+    ) {
+        if (selectedCoupon.type === "percentage") {
+            couponDiscount = Math.floor(
+                selectedRental.totalPrice * (selectedCoupon.discount / 100),
+            );
+        } else {
+            couponDiscount = selectedCoupon.discount;
+        }
+    }
+    const priceAfterCoupon = (selectedRental?.totalPrice ?? 0) - couponDiscount;
+    const maxUsablePoint = Math.min(
+        userPoints,
+        Math.floor(priceAfterCoupon * 0.5),
+    );
+    const safeUsedPoint = Math.max(0, Math.min(usedPoint, maxUsablePoint));
+    const finalPaymentAmount = priceAfterCoupon - safeUsedPoint;
 
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -351,15 +548,44 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                                                         "borrowed" &&
                                                         rental.status ===
                                                             "결제 보관 중" && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleStartRental(
+                                                                            rental.id,
+                                                                        )
+                                                                    }
+                                                                    className="px-6 py-2 bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                >
+                                                                    대여 시작
+                                                                </button>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleCancelRental(
+                                                                            rental.id,
+                                                                        )
+                                                                    }
+                                                                    className="px-6 py-2 border-2 border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
+                                                                >
+                                                                    대여 취소
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                    {canCancelBorrowedRental(
+                                                        rental,
+                                                    ) &&
+                                                        rental.status ===
+                                                            "대여 중" && (
                                                             <button
                                                                 onClick={() =>
-                                                                    handleStartRental(
+                                                                    handleCancelRental(
                                                                         rental.id,
                                                                     )
                                                                 }
-                                                                className="px-6 py-2 bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                className="px-6 py-2 border-2 border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
                                                             >
-                                                                대여 시작
+                                                                대여 취소
                                                             </button>
                                                         )}
 
@@ -401,26 +627,131 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white max-w-md w-full p-8">
                         <h2 className="text-gray-900 mb-4">
-                            대여를 시작하시겠습니까?
+                            결제 후 대여를 시작합니다
                         </h2>
-                        <p className="text-gray-600 mb-8">
-                            "{selectedRental.itemName}"의 대여를 시작합니다.
+                        <p className="text-gray-600 mb-6">
+                            "{selectedRental.itemName}" 결제를 진행하세요.
                             <br />
                             대여 기간: {selectedRental.startDate} ~{" "}
                             {selectedRental.endDate}
                         </p>
+
+                        <div className="space-y-4 mb-8">
+                            <div className="bg-gray-50 p-4">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-600">
+                                        결제 금액
+                                    </span>
+                                    <span className="text-gray-900">
+                                        {selectedRental.totalPrice.toLocaleString()}
+                                        원
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm text-gray-700 mb-2">
+                                    쿠폰 선택
+                                </label>
+                                <select
+                                    value={selectedCouponId ?? ""}
+                                    onChange={(event) =>
+                                        setSelectedCouponId(
+                                            event.target.value || null,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                                >
+                                    <option value="">쿠폰 사용 안 함</option>
+                                    {mockCoupons.map((coupon) => (
+                                        <option
+                                            key={coupon.id}
+                                            value={coupon.id}
+                                        >
+                                            {coupon.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedCoupon &&
+                                    selectedRental &&
+                                    selectedRental.totalPrice <
+                                        selectedCoupon.minAmount && (
+                                        <p className="text-xs text-red-500 mt-2">
+                                            최소 주문 금액{" "}
+                                            {selectedCoupon.minAmount.toLocaleString()}
+                                            원 이상에서 사용 가능합니다.
+                                        </p>
+                                    )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm text-gray-700 mb-2">
+                                    포인트 사용
+                                </label>
+                                <input
+                                    type="text"
+                                    value={usedPoint}
+                                    onChange={(event) =>
+                                        handlePointInputChange(
+                                            event.target.value,
+                                            maxUsablePoint,
+                                        )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                                    placeholder="사용할 포인트 입력"
+                                />
+                                <p className="text-xs text-gray-500 mt-2">
+                                    보유 포인트: {userPoints.toLocaleString()}P
+                                    | 최대 사용 가능:{" "}
+                                    {maxUsablePoint.toLocaleString()}P
+                                </p>
+                                {pointLimitMessage && (
+                                    <p className="text-xs text-red-500 mt-2">
+                                        {pointLimitMessage}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="bg-gray-50 p-4">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-gray-600">
+                                        포인트
+                                    </span>
+                                    <span className="text-gray-900">
+                                        -{safeUsedPoint.toLocaleString()}원
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm mb-2">
+                                    <span className="text-gray-600">쿠폰</span>
+                                    <span className="text-gray-900">
+                                        -{couponDiscount.toLocaleString()}원
+                                    </span>
+                                </div>
+                                <div className="border-t border-gray-200 pt-2 flex items-center justify-between">
+                                    <span className="text-gray-900">
+                                        최종 결제 금액
+                                    </span>
+                                    <span className="text-gray-900">
+                                        {finalPaymentAmount.toLocaleString()}원
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="flex gap-3">
                             <button
                                 onClick={cancelStartRental}
+                                disabled={isPaying}
                                 className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={confirmStartRental}
+                                disabled={isPaying}
                                 className="flex-1 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors"
                             >
-                                확인
+                                {isPaying ? "결제 중..." : "결제하기"}
                             </button>
                         </div>
                     </div>
@@ -448,6 +779,35 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                             </button>
                             <button
                                 onClick={confirmReturn}
+                                className="flex-1 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors"
+                            >
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCancelModal && selectedRental && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white max-w-md w-full p-8">
+                        <h2 className="text-gray-900 mb-4">
+                            대여를 취소하시겠습니까?
+                        </h2>
+                        <p className="text-gray-600 mb-8">
+                            "{selectedRental.itemName}" 대여를 취소합니다.
+                            <br />
+                            취소 후 내역에서 제거됩니다.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={cancelCancelRental}
+                                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={confirmCancelRental}
                                 className="flex-1 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors"
                             >
                                 확인

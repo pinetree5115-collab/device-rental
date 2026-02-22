@@ -1,11 +1,12 @@
 "use client";
 
 import { getMyInfoApi } from "@/services/auth_copy.service";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Package, User, LogIn, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
+    const queryClient = useQueryClient();
     const router = useRouter();
 
     const { data: user } = useQuery({
@@ -20,10 +21,14 @@ export function Navbar() {
         router.push(`/${path}`);
     };
 
-    const onLoginToggle = () => {
+    const onLoginToggle = async () => {
         if (isLoggedIn) {
-            // Perform logout logic here
-            console.log("Logging out...");
+            await fetch("/api/logout", {
+                method: "POST",
+            }).then(() => {
+                queryClient.invalidateQueries({ queryKey: ["myInfo"] });
+                router.push("/");
+            });
         } else {
             router.push("/login");
         }
@@ -82,7 +87,7 @@ export function Navbar() {
                                         </button>
                                         <button
                                             onClick={() =>
-                                                onNavigate("rent/history")
+                                                onNavigate("items/rent/history")
                                             }
                                             className="text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
                                         >
