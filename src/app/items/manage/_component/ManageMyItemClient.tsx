@@ -4,17 +4,21 @@ import { Edit, Trash2, Package } from "lucide-react";
 import { useState } from "react";
 import ItemEditModal, { EditItemData } from "./ItemEditModal";
 import { Category, Item } from "@/types/common";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchMyItems } from "@/services/post.service";
+import { LoadingSpinner } from "@/components/common/Spinner";
 
-function ManageMyItemClient({
-    items,
-    categories,
-}: {
-    items: Item[];
-    categories: Category[];
-}) {
+function ManageMyItemClient({ categories }: { categories: Category[] }) {
+    const queryClient = useQueryClient();
     const [editingItemId, setEditingItemId] = useState<number | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+
+    const { data: items = [], isLoading } = useQuery<Item[]>({
+        queryKey: ["myItems"],
+        queryFn: () => fetchMyItems(),
+        staleTime: 1000 * 60 * 5,
+    });
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -96,6 +100,7 @@ function ManageMyItemClient({
             }
 
             alert("물품이 성공적으로 수정되었습니다.");
+            await queryClient.invalidateQueries({ queryKey: ["myItems"] });
             setEditingItemId(null);
         } catch (err) {
             console.error("Failed to edit item:", err);
@@ -109,6 +114,10 @@ function ManageMyItemClient({
     const editingItem = editingItemId
         ? items.find((item) => item.postId === editingItemId)
         : null;
+
+    if (isLoading) {
+        return <LoadingSpinner />;
+    }
 
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
