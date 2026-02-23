@@ -18,7 +18,35 @@ export async function POST(
             },
         );
 
-        return response;
+        let responseData: unknown = null;
+        try {
+            responseData = await response.json();
+        } catch {
+            responseData = null;
+        }
+
+        if (!response.ok) {
+            const errorMessage =
+                typeof responseData === "object" &&
+                responseData !== null &&
+                "message" in responseData &&
+                typeof (responseData as { message: unknown }).message ===
+                    "string"
+                    ? (responseData as { message: string }).message
+                    : "대여 취소 API 호출에 실패했습니다.";
+
+            return Response.json(
+                {
+                    success: false,
+                    code: "RENTAL_CANCEL_FAILED",
+                    message: errorMessage,
+                    data: null,
+                },
+                { status: response.status },
+            );
+        }
+
+        return Response.json(responseData, { status: response.status });
     } catch (error) {
         console.error("Error in PATCH /api/rentals/:rentalId/cancel:", error);
         return Response.json(
