@@ -273,23 +273,37 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error("결제 테스트 API 호출에 실패했습니다.");
+            let responseData: unknown = null;
+            try {
+                responseData = await response.json();
+            } catch {
+                responseData = null;
             }
 
-            // setRentals((prev) =>
-            //     prev.map((rental) =>
-            //         rental.id === selectedRental.id
-            //             ? { ...rental, status: "대여 중" as const }
-            //             : rental,
-            //     ),
-            // );
+            if (!response.ok) {
+                const errorMessage =
+                    typeof responseData === "object" &&
+                    responseData !== null &&
+                    "message" in responseData &&
+                    typeof (responseData as { message: unknown }).message ===
+                        "string"
+                        ? (responseData as { message: string }).message
+                        : "결제 테스트 API 호출에 실패했습니다.";
+
+                throw new Error(errorMessage);
+            }
+
             setShowStartModal(false);
             setSelectedRental(null);
             alert("결제가 완료되어 대여가 확정되었습니다.");
         } catch (error) {
             console.error(error);
-            alert("결제 테스트 API 호출 중 오류가 발생했습니다.");
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "결제 테스트 API 호출 중 오류가 발생했습니다.",
+            );
+            // alert("결제 테스트 API 호출 중 오류가 발생했습니다.");
         } finally {
             setIsPaying(false);
         }
@@ -348,8 +362,24 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                 credentials: "include",
             });
 
+            let responseData: unknown = null;
+            try {
+                responseData = await response.json();
+            } catch {
+                responseData = null;
+            }
+
             if (!response.ok) {
-                throw new Error("대여 취소 API 호출에 실패했습니다.");
+                const errorMessage =
+                    typeof responseData === "object" &&
+                    responseData !== null &&
+                    "message" in responseData &&
+                    typeof (responseData as { message: unknown }).message ===
+                        "string"
+                        ? (responseData as { message: string }).message
+                        : "대여 취소 API 호출에 실패했습니다.";
+
+                throw new Error(errorMessage);
             }
 
             setRentals((prev) =>
@@ -360,7 +390,14 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
             alert("대여가 취소되었습니다.");
         } catch (error) {
             console.error(error);
-            alert("대여 취소 중 오류가 발생했습니다.");
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "대여 취소 중 오류가 발생했습니다.",
+            );
+
+            setShowCancelModal(false);
+            setSelectedRental(null);
         }
     };
 
