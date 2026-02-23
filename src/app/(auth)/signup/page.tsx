@@ -28,7 +28,6 @@ export default function SignUpPage() {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
           return 0;
         }
         return prev - 1;
@@ -180,7 +179,8 @@ export default function SignUpPage() {
                     <button
                       type="button"
                       onClick={handleSendCode}
-                      className="bg-[#d7d8da] px-5 py-2.5 text-sm text-white font-normal"
+                      className={`px-5 py-2.5 text-sm text-white font-normal ${timeLeft === 0 ? 'bg-[#1e293b]' : 'bg-[#d7d8da]'
+                        }`}
                     >
                       재전송
                     </button>
@@ -205,12 +205,12 @@ export default function SignUpPage() {
                       onChange={(e) => setVerificationCode(e.target.value)}
                       className="flex-1 border border-gray-300 p-2.5  focus:outline-none focus:border-red-500"
                       maxLength={6}
-                      disabled={isVerified}
+                      disabled={isVerified || timeLeft === 0}
                     />
                     <button
                       type="button"
                       onClick={handleVerifyCode}
-                      disabled={isVerified || isLoading}
+                      disabled={isVerified || isLoading || timeLeft === 0}
                       className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal disabled:bg-gray-300"
                     >
                       {isVerified ? '인증완료' : '인증 확인'}
