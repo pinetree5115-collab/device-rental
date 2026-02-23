@@ -269,7 +269,7 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    rentalId: 2,
+                    rentalId: 11,
                 }),
             });
 
@@ -343,7 +343,7 @@ function RentalHistoryPage({ onBack }: RentalHistoryPageProps) {
         }
 
         try {
-            const response = await fetch(`/api/rentals/2/cancel`, {
+            const response = await fetch(`/api/rentals/11/cancel`, {
                 method: "POST",
                 credentials: "include",
             });

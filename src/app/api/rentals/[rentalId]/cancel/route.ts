@@ -9,7 +9,7 @@ export async function POST(
         const response = await fetch(
             process.env.NEXT_PUBLIC_API_URL + `/api/rentals/${rentalId}/cancel`,
             {
-                method: "POST",
+                method: "PATCH",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
@@ -18,11 +18,9 @@ export async function POST(
             },
         );
 
-        console.log("Response from backend:", response);
-
         return response;
     } catch (error) {
-        console.error("Error in POST /api/rentals/:rentalId/cancel:", error);
+        console.error("Error in PATCH /api/rentals/:rentalId/cancel:", error);
         return Response.json(
             {
                 success: false,

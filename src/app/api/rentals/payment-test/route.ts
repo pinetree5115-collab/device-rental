@@ -7,7 +7,7 @@ export async function POST(request: Request) {
             process.env.NEXT_PUBLIC_API_URL +
                 `/api/rentals/${body.rentalId}/confirm`,
             {
-                method: "POST",
+                method: "PATCH",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
@@ -16,11 +16,9 @@ export async function POST(request: Request) {
             },
         );
 
-        console.log("Response from backend:", response);
-
         return response;
     } catch (error) {
-        console.error("Error in POST /api/rentals/:rentalId/confirm:", error);
+        console.error("Error in PATCH /api/rentals/:rentalId/confirm:", error);
         return Response.json(
             {
                 success: false,
