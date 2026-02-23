@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import * as authService from '@/services/auth.service';
 
-export default function SingnUpPage() {
+export default function SignUpPage() {
   // 폼 상태 정의
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,18 +17,76 @@ export default function SingnUpPage() {
   const [isCodeSent, setIsCodeSent] = useState(false); // 인증번호 발송 여부
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerified, setIsVerified] = useState(false); // 이메일 인증 완료 여부
+  const [timeLeft, setTimeLeft] = useState(300); // 타이머 (초 단위, 5분 = 300초)
 
   const { signup, isLoading, error } = useAuth();
 
-  const handleSendCode = () => {
-    // TODO: 실제 인증번호 발송 API 연결
-    setIsCodeSent(true);
+  // 타이머 카운트다운
+  useEffect(() => {
+    if (!isCodeSent || isVerified || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCodeSent, isVerified, timeLeft]);
+
+  // 타이머 포맷팅 (분:초)
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const handleVerifyCode = () => {
-    // TODO: 실제 인증번호 확인 API 연결
-    setIsVerified(true);
-    alert('이메일 인증이 완료되었습니다!');
+  const handleSendCode = async () => {
+    if (!email) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const result = await authService.sendVerificationCode(email);
+
+      if (result.success) {
+        setIsCodeSent(true);
+        setTimeLeft(300); // 타이머 리셋 (5분)
+        setIsVerified(false); // 재전송 시 인증 상태 초기화
+        setVerificationCode(''); // 입력한 인증번호 초기화
+        alert(result.message);
+      } else {
+        alert(result.message);
+      }
+    } catch (err) {
+      console.error('인증번호 발송 실패:', err);
+      alert('인증번호 발송에 실패했습니다.');
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode) {
+      alert('인증번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const result = await authService.verifyEmailCode(email, verificationCode);
+
+      if (result.success) {
+        setIsVerified(true);
+        alert(result.message);
+      } else {
+        alert(result.message);
+      }
+    } catch (err) {
+      console.error('인증 확인 실패:', err);
+      alert('인증 확인에 실패했습니다.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +179,8 @@ export default function SingnUpPage() {
                     <button
                       type="button"
                       onClick={handleSendCode}
-                      className="bg-[#d7d8da] px-5 py-2.5 text-sm text-white font-normal"
+                      className={`px-5 py-2.5 text-sm text-white font-normal ${timeLeft === 0 ? 'bg-[#1e293b]' : 'bg-[#d7d8da]'
+                        }`}
                     >
                       재전송
                     </button>
@@ -131,7 +191,10 @@ export default function SingnUpPage() {
               {isCodeSent && (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
-                    인증번호 <span className="text-[#FB2C36]">*</span> <span className="text-red-500 ml-1">2:51</span>
+                    인증번호 <span className="text-[#FB2C36]">*</span>
+                    <span className={`ml-1 ${timeLeft <= 60 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {formatTime(timeLeft)}
+                    </span>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -142,12 +205,12 @@ export default function SingnUpPage() {
                       onChange={(e) => setVerificationCode(e.target.value)}
                       className="flex-1 border border-gray-300 p-2.5  focus:outline-none focus:border-red-500"
                       maxLength={6}
-                      disabled={isVerified}
+                      disabled={isVerified || timeLeft === 0}
                     />
                     <button
                       type="button"
                       onClick={handleVerifyCode}
-                      disabled={isVerified || isLoading}
+                      disabled={isVerified || isLoading || timeLeft === 0}
                       className="bg-[#FF4D4D] px-5 py-2.5  text-sm text-white font-normal disabled:bg-gray-300"
                     >
                       {isVerified ? '인증완료' : '인증 확인'}

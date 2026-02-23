@@ -1,4 +1,5 @@
 import apiClient from './api.service';
+import axios from 'axios';
 import type {
   LoginRequest,
   LoginApiResponse,
@@ -7,7 +8,18 @@ import type {
   MeApiResponse,
   AuthSuccessResponse,
   User,
+  SendVerificationCodeResponse,
+  VerifyEmailCodeResponse,
 } from '@/types/auth';
+
+// 인증이 필요 없는 public API용 클라이언트
+const publicClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://43.201.87.180:8080',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export async function login(data: LoginRequest): Promise<AuthSuccessResponse> {
   const response = await apiClient.post<LoginApiResponse>('/api/users/login', data);
@@ -54,12 +66,23 @@ export async function getCurrentUser(): Promise<User> {
   };
 }
 
-export async function sendVerificationCode(email: string): Promise<unknown> {
-  const response = await apiClient.post('/auth/send-code', { email });
+export async function sendVerificationCode(
+  email: string
+): Promise<SendVerificationCodeResponse> {
+  const response = await publicClient.post<SendVerificationCodeResponse>(
+    '/auth/email-verification/code',
+    { email }
+  );
   return response.data;
 }
 
-export async function verifyCode(email: string, code: string): Promise<unknown> {
-  const response = await apiClient.post('/auth/verify-code', { email, code });
+export async function verifyEmailCode(
+  email: string,
+  code: string
+): Promise<VerifyEmailCodeResponse> {
+  const response = await publicClient.post<VerifyEmailCodeResponse>(
+    '/auth/email-verification/code/verify',
+    { email, code }
+  );
   return response.data;
 }
