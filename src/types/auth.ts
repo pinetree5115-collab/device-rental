@@ -51,3 +51,30 @@ export interface AuthSuccessResponse {
   refreshToken?: string;
   message?: string;
 }
+
+// 이메일 인증 코드 발송 요청
+export interface SendVerificationCodeRequest {
+  email: string;
+}
+
+// 이메일 인증 코드 발송 응답
+export interface SendVerificationCodeResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: null;
+}
+
+// 이메일 인증 확인 요청
+export interface VerifyEmailCodeRequest {
+  email: string;
+  code: string;
+}
+
+// 이메일 인증 확인 응답
+export interface VerifyEmailCodeResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: null;
+}

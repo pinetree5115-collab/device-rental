@@ -1,8 +1,9 @@
 'use client'
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import * as authService from '@/services/auth.service';
 
-export default function SingnUpPage() {
+export default function SignUpPage() {
   // 폼 상태 정의
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,15 +20,46 @@ export default function SingnUpPage() {
 
   const { signup, isLoading, error } = useAuth();
 
-  const handleSendCode = () => {
-    // TODO: 실제 인증번호 발송 API 연결
-    setIsCodeSent(true);
+  const handleSendCode = async () => {
+    if (!email) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const result = await authService.sendVerificationCode(email);
+
+      if (result.success) {
+        setIsCodeSent(true);
+        alert(result.message);
+      } else {
+        alert(result.message);
+      }
+    } catch (err) {
+      console.error('인증번호 발송 실패:', err);
+      alert('인증번호 발송에 실패했습니다.');
+    }
   };
 
-  const handleVerifyCode = () => {
-    // TODO: 실제 인증번호 확인 API 연결
-    setIsVerified(true);
-    alert('이메일 인증이 완료되었습니다!');
+  const handleVerifyCode = async () => {
+    if (!verificationCode) {
+      alert('인증번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const result = await authService.verifyEmailCode(email, verificationCode);
+
+      if (result.success) {
+        setIsVerified(true);
+        alert(result.message);
+      } else {
+        alert(result.message);
+      }
+    } catch (err) {
+      console.error('인증 확인 실패:', err);
+      alert('인증 확인에 실패했습니다.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,7 +163,7 @@ export default function SingnUpPage() {
               {isCodeSent && (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
-                    인증번호 <span className="text-[#FB2C36]">*</span> <span className="text-red-500 ml-1">2:51</span>
+                    인증번호 <span className="text-[#FB2C36]">*</span> <span className="text-red-500 ml-1">5:00</span>
                   </label>
                   <div className="flex gap-2">
                     <input
