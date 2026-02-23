@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import * as authService from '@/services/auth.service';
 
@@ -17,8 +17,33 @@ export default function SignUpPage() {
   const [isCodeSent, setIsCodeSent] = useState(false); // 인증번호 발송 여부
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerified, setIsVerified] = useState(false); // 이메일 인증 완료 여부
+  const [timeLeft, setTimeLeft] = useState(300); // 타이머 (초 단위, 5분 = 300초)
 
   const { signup, isLoading, error } = useAuth();
+
+  // 타이머 카운트다운
+  useEffect(() => {
+    if (!isCodeSent || isVerified || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCodeSent, isVerified, timeLeft]);
+
+  // 타이머 포맷팅 (분:초)
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   const handleSendCode = async () => {
     if (!email) {
@@ -31,6 +56,9 @@ export default function SignUpPage() {
 
       if (result.success) {
         setIsCodeSent(true);
+        setTimeLeft(300); // 타이머 리셋 (5분)
+        setIsVerified(false); // 재전송 시 인증 상태 초기화
+        setVerificationCode(''); // 입력한 인증번호 초기화
         alert(result.message);
       } else {
         alert(result.message);
@@ -163,7 +191,10 @@ export default function SignUpPage() {
               {isCodeSent && (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="authCode" className="text-xs font-normal text-gray-700">
-                    인증번호 <span className="text-[#FB2C36]">*</span> <span className="text-red-500 ml-1">5:00</span>
+                    인증번호 <span className="text-[#FB2C36]">*</span>
+                    <span className={`ml-1 ${timeLeft <= 60 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {formatTime(timeLeft)}
+                    </span>
                   </label>
                   <div className="flex gap-2">
                     <input
