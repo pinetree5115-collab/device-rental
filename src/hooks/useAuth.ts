@@ -59,7 +59,7 @@ export function useAuth() {
   const handleSignup = async (
     email: string,
     password: string,
-    name: string | null,
+    name: string,
     address: string | null,
     bank: string | null,
     account: string | null,
@@ -69,7 +69,7 @@ export function useAuth() {
       setIsLoading(true);
       setError(null);
 
-      const data = await authService.signup({
+      const data = await authService.signup(
         email,
         password,
         name,
@@ -77,7 +77,7 @@ export function useAuth() {
         bank,
         account,
         phone
-      });
+      );
 
       // 회원가입 후 자동 로그인
       login(data.user, data.token);

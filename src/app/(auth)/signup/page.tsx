@@ -98,6 +98,11 @@ export default function SignUpPage() {
       return;
     }
 
+    if (!name.trim()) {
+      alert('이름을 입력해주세요.');
+      return;
+    }
+
     if (password !== passwordConfirm) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
@@ -107,7 +112,7 @@ export default function SignUpPage() {
       await signup(
         email,
         password,
-        name || null,
+        name,
         address || null,
         bank || null,
         account || null,
@@ -267,13 +272,16 @@ export default function SignUpPage() {
 
             <div className="space-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-normal text-gray-700">이름</label>
+                <label className="text-xs font-normal text-gray-700">
+                  이름 <span className="text-[#FB2C36]">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="이름을 입력하세요"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
+                  required
                 />
               </div>
 

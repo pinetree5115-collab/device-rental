@@ -22,13 +22,10 @@ export interface LoginApiResponse {
 
 // 회원가입 요청
 export interface SignupRequest {
-  name: string | null;
   email: string;
   password: string;
-  address: string | null;
-  bank: string | null;
-  account: string | null;
-  phone: string | null;
+  name: string;
+  request: string | null;
 }
 
 // 회원가입 응답 (백엔드)
