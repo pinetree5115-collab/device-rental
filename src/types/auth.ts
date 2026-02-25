@@ -25,7 +25,7 @@ export interface SignupRequest {
   email: string;
   password: string;
   name: string;
-  request: string | null;
+  additionalInfo: string | null;  // 주소, 은행, 계좌, 전화번호 등의 추가 정보를 JSON 문자열로 저장
 }
 
 // 회원가입 응답 (백엔드)

@@ -98,6 +98,7 @@ export default function SignUpPage() {
       return;
     }
 
+    // name은 required 필드지만 공백만 입력된 경우를 방지하기 위한 추가 검증
     if (!name.trim()) {
       alert('이름을 입력해주세요.');
       return;
