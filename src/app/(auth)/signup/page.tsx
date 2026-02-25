@@ -18,8 +18,26 @@ export default function SignUpPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerified, setIsVerified] = useState(false); // 이메일 인증 완료 여부
   const [timeLeft, setTimeLeft] = useState(300); // 타이머 (초 단위, 5분 = 300초)
+  const [isPasswordValid, setIsPasswordValid] = useState(false); // 비밀번호 유효성 여부
 
   const { signup, isLoading, error } = useAuth();
+
+  // 비밀번호 유효성 검사 함수
+  const validatePassword = (pwd: string) => {
+    const hasLetter = /[a-zA-Z]/.test(pwd);
+    const hasNumber = /[0-9]/.test(pwd);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    const isLengthValid = pwd.length >= 8;
+
+    return hasLetter && hasNumber && hasSpecialChar && isLengthValid;
+  };
+
+  // 비밀번호 변경 핸들러
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    setIsPasswordValid(validatePassword(newPassword));
+  };
 
   // 타이머 카운트다운
   useEffect(() => {
@@ -242,11 +260,16 @@ export default function SignUpPage() {
                   type="password"
                   placeholder="최소 8자 이상"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   className="w-full border border-gray-300 p-2.5 focus:outline-none focus:border-red-500"
                   required
                 />
-                <p className="text-[11px] text-[#FB2C36]">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
+                {!isPasswordValid && password.length > 0 && (
+                  <p className="text-[11px] text-[#FB2C36]">영문, 숫자, 특수문자를 조합하여 8자 이상 입력해주세요</p>
+                )}
+                {isPasswordValid && (
+                  <p className="text-[11px] text-green-600">✓ 사용 가능한 비밀번호입니다</p>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
