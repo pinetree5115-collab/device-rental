@@ -36,15 +36,49 @@ export async function login(data: LoginRequest): Promise<AuthSuccessResponse> {
   };
 }
 
-export async function signup(data: SignupRequest): Promise<AuthSuccessResponse> {
-  const response = await apiClient.post<SignupApiResponse>('/api/users', data);
+export async function signup(
+  email: string,
+  password: string,
+  name: string,
+  address: string | null,
+  bank: string | null,
+  account: string | null,
+  phone: string | null
+): Promise<AuthSuccessResponse> {
+  // 추가 정보를 additionalInfo 필드에 JSON 문자열로 담기
+  const additionalInfo = {
+    address,
+    bank,
+    account,
+    phone,
+  };
+
+  const requestData: SignupRequest = {
+    email,
+    password,
+    name,
+    additionalInfo: JSON.stringify(additionalInfo),
+  };
+
+  // Idempotency-Key 생성 (중복 요청 방지용)
+  const idempotencyKey = crypto.randomUUID();
+
+  const response = await publicClient.post<SignupApiResponse>(
+    '/api/users',
+    requestData,
+    {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      }
+    }
+  );
   const apiData = response.data;
 
   return {
     user: {
-      id: data.email,
-      email: data.email,
-      name: data.name,
+      id: email,
+      email: email,
+      name: name,
     },
     token: apiData.token,
     message: apiData.message,
