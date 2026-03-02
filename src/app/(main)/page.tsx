@@ -9,8 +9,6 @@ async function Home() {
         return <div>No categories available.</div>;
     }
 
-    // const itemsResponse = await fetchItems("", null, null, 0);
-
     const queryClient = new QueryClient();
 
     await queryClient.prefetchQuery({
