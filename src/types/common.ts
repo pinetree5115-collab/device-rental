@@ -30,4 +30,25 @@ export interface Item {
     userName: string;
 }
 
-export type ItemStatus = "AVAILABLE" | "RESERVED"; // 백엔드한테 물어봐서 더 추가해야함
+export type ItemStatus = "AVAILABLE" | "HIDDEN" | "RESERVED" | "ENDED"; // 백엔드한테 물어봐서 더 추가해야함
+
+export interface Rental {
+    rentalId: number;
+    userId: number;
+    postId: number;
+    lenderName: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+    receiveMethod: "MEETUP" | "PARCEL";
+    status:
+        | "REQUESTED"
+        | "CONFIRMED"
+        | "IN_USE"
+        | "RETURNED"
+        | "ENDED"
+        | "CANCELED";
+    totalPrice: number;
+    createdAt: string;
+    updatedAt: string;
+}
