@@ -3,10 +3,10 @@ export async function PATCH(request: Request) {
     const body = await request.json();
 
     // 클라이언트로부터 받은 쿠키를 백엔드로 전달
-    const cookieHeader = request.headers.get('cookie');
+    const cookieHeader = request.headers.get('Cookie');
 
     const response = await fetch(
-      process.env.NEXT_PUBLIC_API_URL + '/api/users/me/password',
+      process.env.API_URL + '/api/users/me/password',
       {
         method: 'PATCH',
         headers: {
@@ -21,7 +21,7 @@ export async function PATCH(request: Request) {
 
     return Response.json(data, { status: response.status });
   } catch (error) {
-    console.error('Error in PUT /api/users/me/password:', error);
+    console.error('Error in PATCH /api/users/me/password:', error);
     return Response.json(
       { success: false, message: '비밀번호 변경에 실패했습니다.' },
       { status: 500 }
