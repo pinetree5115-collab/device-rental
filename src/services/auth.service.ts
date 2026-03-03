@@ -132,9 +132,19 @@ export async function changePassword(
     newPassword,
   };
 
-  const response = await apiClient.put<ChangePasswordResponse>(
-    '/api/users/me/password',
-    requestData
-  );
-  return response.data;
+  const response = await fetch('/api/users/me/password', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 쿠키 포함
+    body: JSON.stringify(requestData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || '비밀번호 변경에 실패했습니다.');
+  }
+
+  return response.json();
 }
