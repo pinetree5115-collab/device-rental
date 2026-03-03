@@ -388,16 +388,16 @@ function RentalHistoryClient() {
     const safeUsedPoint = Math.max(0, Math.min(usedPoint, maxUsablePoint));
     const finalPaymentAmount = priceAfterCoupon - safeUsedPoint;
 
-    if (!rentals && isLoading) {
-        return (
-            <div className="text-center py-24 bg-gray-50">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-1">
-                    대여 내역을 불러오는 중입니다...
-                </p>
-            </div>
-        );
-    }
+    // if (!rentals && isLoading) {
+    //     return (
+    //         <div className="text-center py-24 bg-gray-50">
+    //             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+    //             <p className="text-gray-500 mb-1">
+    //                 대여 내역을 불러오는 중입니다...
+    //             </p>
+    //         </div>
+    //     );
+    // }
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {/* Breadcrumb */}
@@ -443,13 +443,9 @@ function RentalHistoryClient() {
                 </button>
             </div>
 
-            {rentals!.data.content.length === 0 ? (
-                <div className="text-center py-24 bg-gray-50">
-                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-1">대여 내역이 없습니다</p>
-                    <p className="text-gray-400 text-sm">물품을 대여해보세요</p>
-                </div>
-            ) : (
+            {rentals &&
+            rentals.data.content &&
+            rentals.data.content.length > 0 ? (
                 <div className="space-y-6">
                     {rentals!.data.content.map((rental) => {
                         const config = getStatusConfig(rental.status);
@@ -587,6 +583,19 @@ function RentalHistoryClient() {
                             </div>
                         );
                     })}
+                </div>
+            ) : !isLoading ? (
+                <div className="text-center py-24 bg-gray-50">
+                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-1">대여 내역이 없습니다</p>
+                    <p className="text-gray-400 text-sm">물품을 대여해보세요</p>
+                </div>
+            ) : (
+                <div className="text-center py-24 bg-gray-50">
+                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-1">
+                        대여 내역을 불러오는 중입니다...
+                    </p>
                 </div>
             )}
 
