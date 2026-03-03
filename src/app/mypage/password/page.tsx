@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import * as authService from '@/services/auth.service';
 
 // 2. 타입/인터페이스
 interface PasswordForm {
@@ -97,12 +98,20 @@ export default function PasswordChangePage() {
 
     setIsLoading(true);
     try {
-      // TODO: API 호출
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert('비밀번호가 변경되었습니다.');
-      router.push('/mypage');
-    } catch (error) {
-      alert('비밀번호 변경에 실패했습니다.');
+      const response = await authService.changePassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
+
+      if (response.success) {
+        alert(response.message);
+        router.push('/mypage');
+      } else {
+        alert(response.message);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || '비밀번호 변경에 실패했습니다.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
