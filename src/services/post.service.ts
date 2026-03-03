@@ -49,6 +49,10 @@ export const fetchCategories = async () => {
  *
  * @returns Item[]
  */
+interface FetchItemsOptions {
+    baseUrl?: string;
+    cookie?: string;
+}
 export interface FetchItemsResponse {
     content: Item[];
     page: {
@@ -63,6 +67,7 @@ export const fetchItems = async (
     categoryId: number | null,
     status: string | null = null,
     page: number = 0,
+    options?: FetchItemsOptions,
 ) => {
     try {
         const queryString = new URLSearchParams({
@@ -74,15 +79,16 @@ export const fetchItems = async (
             sort: "DESC",
         }).toString();
 
-        const response = await fetch(
-            process.env.NEXT_PUBLIC_API_URL + "/api/posts?" + queryString,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+        const requestUrl = options?.baseUrl
+            ? `${options.baseUrl}/api/posts/all?`
+            : "/api/posts/all?";
+
+        const response = await fetch(requestUrl + queryString, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
             },
-        );
+        });
 
         if (!response.ok) {
             throw new Error("Failed to fetch items");

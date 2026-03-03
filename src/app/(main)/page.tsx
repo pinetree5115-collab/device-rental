@@ -1,6 +1,7 @@
 import { dehydrate, QueryClient } from "@tanstack/react-query";
 import { fetchCategories, fetchItems } from "@/services/post.service";
 import HydrateClient from "./_component/HydrateClient";
+import { headers } from "next/headers";
 
 async function Home() {
     const categories = await fetchCategories();
@@ -9,12 +10,26 @@ async function Home() {
         return <div>No categories available.</div>;
     }
 
+    const headerStore = await headers();
+    const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
+    const protocol = headerStore.get("x-forwarded-proto") || "http";
+
     const queryClient = new QueryClient();
 
-    await queryClient.prefetchQuery({
-        queryKey: ["items", null, "", 1, null],
-        queryFn: () => fetchItems("", null, null, 0),
-    });
+    if (host) {
+        await queryClient.prefetchQuery({
+            queryKey: ["items", null, "", 1, null],
+            queryFn: () =>
+                fetchItems("", null, null, 0, {
+                    baseUrl: `${protocol}://${host}`,
+                }),
+        });
+    } else {
+        await queryClient.prefetchQuery({
+            queryKey: ["items", null, "", 1, null],
+            queryFn: () => fetchItems("", null, null, 0),
+        });
+    }
 
     return (
         <HydrateClient state={dehydrate(queryClient)} categories={categories} />

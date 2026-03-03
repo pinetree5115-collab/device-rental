@@ -18,6 +18,12 @@ interface MainPageClientProps {
 
 function MainPageClient({ categories }: MainPageClientProps) {
     const router = useRouter();
+    const host =
+        typeof window !== "undefined" ? window.location.host : undefined;
+    const protocol =
+        typeof window !== "undefined"
+            ? window.location.protocol.replace(":", "")
+            : "http";
 
     const [searchInput, setSearchInput] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -46,6 +52,11 @@ function MainPageClient({ categories }: MainPageClientProps) {
                 categoryFilter,
                 statusFilter,
                 currentPage - 1,
+                host
+                    ? {
+                          baseUrl: `${protocol}://${host}`,
+                      }
+                    : undefined,
             ),
         staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     });
