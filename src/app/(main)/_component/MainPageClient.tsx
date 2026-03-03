@@ -13,11 +13,10 @@ import { getMyInfoApi } from "@/services/auth_copy.service";
 import { LoadingSpinner } from "@/components/common/Spinner";
 
 interface MainPageClientProps {
-    initialItems?: FetchItemsResponse;
     categories: Category[];
 }
 
-function MainPageClient({ initialItems, categories }: MainPageClientProps) {
+function MainPageClient({ categories }: MainPageClientProps) {
     const router = useRouter();
 
     const [searchInput, setSearchInput] = useState("");
@@ -25,21 +24,6 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-
-    const handleSearchSubmit = () => {
-        setCurrentPage(1);
-        setSearchQuery(searchInput.trim());
-    };
-
-    const handleStatusFilterChange = (value: string | null) => {
-        setCurrentPage(1);
-        setStatusFilter(value);
-    };
-
-    const handleCategoryFilterChange = (value: number | null) => {
-        setCurrentPage(1);
-        setCategoryFilter(value);
-    };
 
     const { data: user } = useQuery({
         queryKey: ["myInfo"],
@@ -66,30 +50,26 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
         staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     });
 
+    const handleSearchSubmit = () => {
+        setCurrentPage(1);
+        setSearchQuery(searchInput.trim());
+    };
+
+    const handleStatusFilterChange = (value: string | null) => {
+        setCurrentPage(1);
+        setStatusFilter(value);
+    };
+
+    const handleCategoryFilterChange = (value: number | null) => {
+        setCurrentPage(1);
+        setCategoryFilter(value);
+    };
+
+    console.log("data:::", data);
+
     const items = data?.content ?? [];
-
-    // 필터링 및 정렬 로직
-    const filteredItems = items.filter((item) => {
-        const matchesSearch =
-            item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.description?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus =
-            statusFilter === null || item.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
-
-    // Sort items
-    const sortedItems = [...filteredItems].sort(() => {
-        return 0; // 최신순 (기본 순서 유지)
-    });
-
-    // Pagination (server-side pagination result)
     const totalPages = data?.page.totalPages ?? 0;
-    const paginatedItems = sortedItems;
 
-    if (isLoading) {
-        return <LoadingSpinner />;
-    }
     return (
         <div className="min-h-screen bg-white">
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -115,10 +95,10 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
 
                 <>
                     {isLoading ? (
-                        <div className="text-center py-24">
-                            <p className="text-gray-400">로딩 중...</p>
+                        <div className="flex justify-center py-24">
+                            <LoadingSpinner />
                         </div>
-                    ) : paginatedItems.length === 0 ? (
+                    ) : items.length === 0 ? (
                         <div className="text-center py-24">
                             <p className="text-gray-400">
                                 검색 결과가 없습니다
@@ -126,7 +106,7 @@ function MainPageClient({ initialItems, categories }: MainPageClientProps) {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                            {paginatedItems.map((item) => (
+                            {items.map((item) => (
                                 <ItemCard
                                     key={item.postId}
                                     item={item}
