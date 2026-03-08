@@ -5,6 +5,34 @@
 // 3. 상수
 
 // 4. 컴포넌트
+export async function GET(request: Request) {
+  try {
+    // 클라이언트로부터 받은 쿠키를 백엔드로 전달
+    const cookieHeader = request.headers.get('Cookie');
+
+    const response = await fetch(
+      process.env.API_URL + '/api/users/me/coupons',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cookieHeader && { Cookie: cookieHeader }),
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    return Response.json(data, { status: response.status });
+  } catch (error) {
+    console.error('Error in GET /api/users/me/coupons:', error);
+    return Response.json(
+      { success: false, message: '내 쿠폰 조회에 실패했습니다.' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

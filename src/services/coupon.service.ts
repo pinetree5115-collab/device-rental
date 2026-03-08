@@ -1,5 +1,5 @@
 // 1. import
-import type { IssueCouponRequest, IssueCouponResponse, GetCouponsResponse } from '@/types/coupon';
+import type { IssueCouponRequest, IssueCouponResponse, GetCouponsResponse, UserCouponsResponse } from '@/types/coupon';
 
 // 2. 타입/인터페이스
 
@@ -19,6 +19,22 @@ export const getCoupons = async (): Promise<GetCouponsResponse> => {
   // 백엔드 API 응답 구조에 따른 에러 처리
   if (!data.success) {
     throw new Error(data.message || '쿠폰 조회에 실패했습니다.');
+  }
+
+  return data;
+};
+
+export const getUserCoupons = async (): Promise<UserCouponsResponse> => {
+  const response = await fetch('/api/users/me/coupons', {
+    method: 'GET',
+    credentials: 'include', // 쿠키 포함
+  });
+
+  const data = await response.json();
+
+  // 백엔드 API 응답 구조에 따른 에러 처리
+  if (!data.success) {
+    throw new Error(data.message || '내 쿠폰 조회에 실패했습니다.');
   }
 
   return data;

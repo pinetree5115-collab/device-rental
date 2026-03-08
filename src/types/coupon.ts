@@ -35,6 +35,29 @@ export interface GetCouponsResponse {
   data: CouponData[];
 }
 
+export interface UserCoupon {
+  userCouponId: number;
+  couponId: number;
+  couponName: string;
+  description: string;
+  discountType: 'PERCENT' | 'FIXED';
+  discountValue: number;
+  maxDiscountAmount?: number;
+  minOrderAmount?: number;
+  validFrom: string;
+  validUntil: string;
+  issuedAt: string;
+  usedAt: string | null;
+  status: 'AVAILABLE' | 'USED' | 'EXPIRED';
+}
+
+export interface UserCouponsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: UserCoupon[] | null;
+}
+
 // 3. 상수
 
 // 4. 컴포넌트
