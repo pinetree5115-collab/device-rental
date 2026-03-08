@@ -7,8 +7,7 @@ import type { CouponData, UserCoupon } from '@/types/coupon';
 
 // 2. 타입/인터페이스
 interface CouponPageProps {
-    onBack: () => void;
-    isLoggedIn: boolean;
+    isLoggedIn?: boolean;
 }
 
 interface Coupon {
@@ -67,7 +66,7 @@ const mockCoupons: Coupon[] = [
 ];
 
 // 4. 컴포넌트
-function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
+function CouponPage({ isLoggedIn = true }: CouponPageProps) {
     const [activeTab, setActiveTab] = useState<'available' | 'my'>('available');
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [myCoupons, setMyCoupons] = useState<UserCoupon[]>([]);
@@ -225,12 +224,6 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                                 다양한 할인 쿠폰을 발급받고 특별한 혜택을 누려보세요
                             </p>
                         </div>
-                        <button
-                            onClick={onBack}
-                            className="px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors duration-200"
-                        >
-                            뒤로 가기
-                        </button>
                     </div>
 
                     {/* 탭 메뉴 */}
@@ -239,8 +232,8 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                             <button
                                 onClick={() => setActiveTab('available')}
                                 className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'available'
-                                        ? 'border-red-500 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-red-500 text-red-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 발급 가능한 쿠폰
@@ -248,8 +241,8 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                             <button
                                 onClick={() => setActiveTab('my')}
                                 className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'my'
-                                        ? 'border-red-500 text-red-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-red-500 text-red-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 내 쿠폰
@@ -474,8 +467,8 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                                     <div
                                         key={coupon.userCouponId}
                                         className={`bg-white border-2 p-6 transition-all duration-200 ${coupon.status === 'AVAILABLE'
-                                                ? 'border-gray-200 hover:border-red-300 hover:shadow-lg'
-                                                : 'border-gray-100 opacity-75'
+                                            ? 'border-gray-200 hover:border-red-300 hover:shadow-lg'
+                                            : 'border-gray-100 opacity-75'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start mb-4">
