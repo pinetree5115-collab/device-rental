@@ -1,9 +1,11 @@
 "use client";
 
 import { createRentalApi } from "@/services/post.service";
+import { getUserCoupons } from "@/services/coupon.service";
 import { Item } from "@/types/common";
+import { UserCoupon } from "@/types/coupon";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface RentalData {
     postId: number;
@@ -12,37 +14,7 @@ export interface RentalData {
     receiveMethod: "PARCEL" | "MEETUP";
 }
 
-interface Coupon {
-    id: string;
-    name: string;
-    discount: number;
-    type: "percentage" | "fixed";
-    minAmount: number;
-}
-
-const mockCoupons: Coupon[] = [
-    {
-        id: "1",
-        name: "신규 회원 10% 할인",
-        discount: 10,
-        type: "percentage",
-        minAmount: 10000,
-    },
-    {
-        id: "2",
-        name: "5,000원 할인 쿠폰",
-        discount: 5000,
-        type: "fixed",
-        minAmount: 20000,
-    },
-    {
-        id: "3",
-        name: "20% 할인 쿠폰",
-        discount: 20,
-        type: "percentage",
-        minAmount: 30000,
-    },
-];
+// mock 데이터 제거하고 실제 API 데이터 사용
 
 function ItemRentClient({ item }: { item: Item }) {
     const router = useRouter();
@@ -50,13 +22,42 @@ function ItemRentClient({ item }: { item: Item }) {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [selectedPickupMethod, setSelectedPickupMethod] = useState("");
-    const [selectedCouponId, setSelectedCouponId] = useState<string | null>(
+    const [selectedCouponId, setSelectedCouponId] = useState<number | null>(
         null,
     );
     const [pointsToUse, setPointsToUse] = useState(0);
     const [showCouponModal, setShowCouponModal] = useState(false);
 
+    // 내 쿠폰 관련 상태
+    const [myCoupons, setMyCoupons] = useState<UserCoupon[]>([]);
+    const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+
     const userPoints = 15000; // 유저 포인트 예시
+
+    // 컴포넌트 마운트 시 내 쿠폰 조회
+    useEffect(() => {
+        loadMyCoupons();
+    }, []);
+
+    const loadMyCoupons = async () => {
+        setIsLoadingCoupons(true);
+        try {
+            const response = await getUserCoupons();
+            if (response.success && response.data) {
+                // 사용 가능한 쿠폰만 필터링
+                const availableCoupons = response.data.filter(coupon => coupon.status === 'AVAILABLE');
+                setMyCoupons(availableCoupons);
+            } else {
+                console.warn('쿠폰 조회 실패:', response.message || '알 수 없는 오류');
+                setMyCoupons([]);
+            }
+        } catch (error) {
+            console.error('내 쿠폰 조회 실패:', error);
+            setMyCoupons([]);
+        } finally {
+            setIsLoadingCoupons(false);
+        }
+    };
 
     // 대여 일수 계산
     const calculateDays = () => {
@@ -72,15 +73,19 @@ function ItemRentClient({ item }: { item: Item }) {
     const basePrice = item.pricePerDay * days;
 
     // 쿠폰 및 포인트 할인 계산
-    const selectedCoupon = mockCoupons.find((c) => c.id === selectedCouponId);
+    const selectedCoupon = myCoupons.find((c) => c.userCouponId === selectedCouponId) || null;
     let couponDiscount = 0;
-    if (selectedCoupon && basePrice >= selectedCoupon.minAmount) {
-        if (selectedCoupon.type === "percentage") {
+    if (selectedCoupon && basePrice >= (selectedCoupon.minOrderAmount || 0)) {
+        if (selectedCoupon.discountType === "PERCENT") {
             couponDiscount = Math.floor(
-                basePrice * (selectedCoupon.discount / 100),
+                basePrice * (selectedCoupon.discountValue / 100),
             );
+            // 최대 할인 금액 적용
+            if (selectedCoupon.maxDiscountAmount) {
+                couponDiscount = Math.min(couponDiscount, selectedCoupon.maxDiscountAmount);
+            }
         } else {
-            couponDiscount = selectedCoupon.discount;
+            couponDiscount = selectedCoupon.discountValue;
         }
     }
 
@@ -139,7 +144,7 @@ function ItemRentClient({ item }: { item: Item }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                 <button
-                    onClick={() => {}}
+                    onClick={() => { }}
                     className="hover:text-gray-900 cursor-pointer"
                 >
                     홈
@@ -286,11 +291,10 @@ function ItemRentClient({ item }: { item: Item }) {
                                         onClick={() =>
                                             setSelectedPickupMethod(method)
                                         }
-                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${
-                                            selectedPickupMethod === method
-                                                ? "border-red-500 bg-red-50 text-red-600"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-black"
-                                        }`}
+                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${selectedPickupMethod === method
+                                            ? "border-red-500 bg-red-50 text-red-600"
+                                            : "border-gray-300 bg-white text-gray-700 hover:border-black"
+                                            }`}
                                     >
                                         {method === "택배 수령" ? (
                                             <svg
@@ -388,7 +392,7 @@ function ItemRentClient({ item }: { item: Item }) {
                         </div>
 
                         {/* 쿠폰 선택 */}
-                        {/* <div className="mb-8">
+                        <div className="mb-8">
                             <label className="flex items-center gap-2 text-gray-900 mb-4">
                                 <svg
                                     width="20"
@@ -429,7 +433,8 @@ function ItemRentClient({ item }: { item: Item }) {
                             <button
                                 type="button"
                                 onClick={() => setShowCouponModal(true)}
-                                className="w-full px-4 py-4 cursor-pointer border-2 border-gray-300 text-left flex items-center justify-between hover:border-black transition-colors"
+                                disabled={isLoadingCoupons}
+                                className="w-full px-4 py-4 cursor-pointer border-2 border-gray-300 text-left flex items-center justify-between hover:border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span
                                     className={
@@ -438,9 +443,13 @@ function ItemRentClient({ item }: { item: Item }) {
                                             : "text-gray-500"
                                     }
                                 >
-                                    {selectedCoupon
-                                        ? selectedCoupon.name
-                                        : "쿠폰을 선택해주세요"}
+                                    {isLoadingCoupons
+                                        ? "쿠폰을 불러오는 중..."
+                                        : selectedCoupon
+                                            ? selectedCoupon.couponName
+                                            : myCoupons.length > 0
+                                                ? "쿠폰을 선택해주세요"
+                                                : "사용 가능한 쿠폰이 없습니다"}
                                 </span>
                                 <svg
                                     width="20"
@@ -458,7 +467,7 @@ function ItemRentClient({ item }: { item: Item }) {
                                     />
                                 </svg>
                             </button>
-                        </div> */}
+                        </div>
 
                         {/* 포인트 사용 */}
                         {/* <div className="mb-8">
@@ -612,7 +621,7 @@ function ItemRentClient({ item }: { item: Item }) {
             </div>
 
             {/* 쿠폰 모달 */}
-            {/* {showCouponModal && (
+            {showCouponModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white max-w-md w-full p-8">
                         <div className="flex justify-between items-center mb-6">
@@ -625,56 +634,92 @@ function ItemRentClient({ item }: { item: Item }) {
                             </button>
                         </div>
 
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => {
-                                    setSelectedCouponId(null);
-                                    setShowCouponModal(false);
-                                }}
-                                className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${
-                                    !selectedCouponId
+                        {isLoadingCoupons ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                                <span className="ml-2 text-gray-600">쿠폰을 불러오는 중...</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => {
+                                        setSelectedCouponId(null);
+                                        setShowCouponModal(false);
+                                    }}
+                                    className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${!selectedCouponId
                                         ? "border-red-500 bg-red-50"
                                         : "border-gray-200 hover:border-black"
-                                }`}
-                            >
-                                <p className="text-gray-900">쿠폰 사용 안 함</p>
-                            </button>
-
-                            {mockCoupons.map((coupon) => {
-                                const isDisabled = basePrice < coupon.minAmount;
-                                return (
-                                    <button
-                                        key={coupon.id}
-                                        onClick={() => {
-                                            if (!isDisabled) {
-                                                setSelectedCouponId(coupon.id);
-                                                setShowCouponModal(false);
-                                            }
-                                        }}
-                                        disabled={isDisabled}
-                                        className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${
-                                            isDisabled
-                                                ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
-                                                : selectedCouponId === coupon.id
-                                                  ? "border-red-500 bg-red-50"
-                                                  : "border-gray-200 hover:border-black"
                                         }`}
-                                    >
-                                        <p className="text-gray-900 mb-1">
-                                            {coupon.name}
-                                        </p>
-                                        <p className="text-gray-500 text-sm">
-                                            최소 주문 금액:{" "}
-                                            {coupon.minAmount.toLocaleString()}
-                                            원
-                                        </p>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                >
+                                    <p className="text-gray-900">쿠폰 사용 안 함</p>
+                                </button>
+
+                                {myCoupons.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        사용 가능한 쿠폰이 없습니다.
+                                    </div>
+                                ) : (
+                                    myCoupons.map((coupon) => {
+                                        const isDisabled = basePrice < (coupon.minOrderAmount || 0);
+                                        const formatDiscount = () => {
+                                            if (coupon.discountType === 'PERCENT') {
+                                                return `${coupon.discountValue}% 할인`;
+                                            }
+                                            return `${coupon.discountValue.toLocaleString()}원 할인`;
+                                        };
+
+                                        return (
+                                            <button
+                                                key={coupon.userCouponId}
+                                                onClick={() => {
+                                                    if (!isDisabled) {
+                                                        setSelectedCouponId(coupon.userCouponId);
+                                                        setShowCouponModal(false);
+                                                    }
+                                                }}
+                                                disabled={isDisabled}
+                                                className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${isDisabled
+                                                    ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
+                                                    : selectedCouponId === coupon.userCouponId
+                                                        ? "border-red-500 bg-red-50"
+                                                        : "border-gray-200 hover:border-black"
+                                                    }`}
+                                            >
+                                                <p className="text-gray-900 mb-1 font-medium">
+                                                    {coupon.couponName}
+                                                </p>
+                                                <p className="text-red-600 text-sm mb-1">
+                                                    {formatDiscount()}
+                                                    {coupon.maxDiscountAmount && coupon.discountType === 'PERCENT' && (
+                                                        <span className="text-gray-500">
+                                                            {' '}(최대 {coupon.maxDiscountAmount.toLocaleString()}원)
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <p className="text-gray-500 text-sm">
+                                                    {coupon.minOrderAmount ? (
+                                                        <>최소 주문 금액: {coupon.minOrderAmount.toLocaleString()}원</>
+                                                    ) : (
+                                                        '최소 주문 금액 제한 없음'
+                                                    )}
+                                                </p>
+                                                <p className="text-gray-400 text-xs mt-2">
+                                                    {new Date(coupon.validUntil).toLocaleDateString('ko-KR')}까지 유효
+                                                </p>
+                                                {isDisabled && (
+                                                    <p className="text-red-500 text-xs mt-1">
+                                                        최소 주문 금액 미달
+                                                    </p>
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
-            )} */}
+            )}
         </main>
     );
 }

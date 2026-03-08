@@ -11,12 +11,13 @@ export async function GET(request: Request) {
     const cookieHeader = request.headers.get('Cookie');
 
     const response = await fetch(
-      process.env.API_URL + '/api/users/me/coupons',
+      process.env.NEXT_PUBLIC_API_URL + '/api/users/me/coupons',
       {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(cookieHeader && { Cookie: cookieHeader }),
+          Cookie: cookieHeader || '',
         },
       }
     );
@@ -41,12 +42,13 @@ export async function POST(request: Request) {
     const cookieHeader = request.headers.get('Cookie');
 
     const response = await fetch(
-      process.env.API_URL + '/api/users/me/coupons',
+      process.env.NEXT_PUBLIC_API_URL + '/api/users/me/coupons',
       {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(cookieHeader && { Cookie: cookieHeader }),
+          Cookie: cookieHeader || '',
         },
         body: JSON.stringify(body),
       }
