@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import * as authService from '@/services/auth.service';
 
 // 2. 타입/인터페이스
 interface PasswordForm {
@@ -97,12 +98,20 @@ export default function PasswordChangePage() {
 
     setIsLoading(true);
     try {
-      // TODO: API 호출
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert('비밀번호가 변경되었습니다.');
-      router.push('/mypage');
-    } catch (error) {
-      alert('비밀번호 변경에 실패했습니다.');
+      const response = await authService.changePassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
+
+      if (response.success) {
+        alert(response.message);
+        router.push('/mypage');
+      } else {
+        alert(response.message);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || '비밀번호 변경에 실패했습니다.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -115,75 +124,6 @@ export default function PasswordChangePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* 헤더 */}
-      <header className="bg-black text-white py-3 px-6">
-        <p className="text-sm text-center">
-          개인 전자기기 대여 플랫폼에 오신 것을 환영합니다
-        </p>
-      </header>
-
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
-                </svg>
-                전자기기 대여
-              </Link>
-              <div className="flex gap-6">
-                <Link href="/items" className="text-gray-700 hover:text-gray-900">
-                  물품 목록
-                </Link>
-                <Link href="/coupons" className="text-gray-700 hover:text-gray-900">
-                  쿠폰
-                </Link>
-                <Link href="/points" className="text-gray-700 hover:text-gray-900">
-                  포인트
-                </Link>
-                <Link href="/mypage" className="text-gray-900 font-medium">
-                  내 대여
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-2 text-gray-700">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="8" r="5" />
-                  <path d="M20 21a8 8 0 1 0-16 0" />
-                </svg>
-                마이페이지
-              </span>
-              <button className="flex items-center gap-2 px-4 py-2 border-2 border-gray-800 hover:bg-gray-50">
-                <span className="text-lg">➜</span>
-                로그아웃
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* 메인 콘텐츠 */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-medium text-gray-900 mb-8">내 계정</h1>

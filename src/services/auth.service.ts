@@ -10,6 +10,8 @@ import type {
   User,
   SendVerificationCodeResponse,
   VerifyEmailCodeResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
 } from '@/types/auth';
 
 // 인증이 필요 없는 public API용 클라이언트
@@ -119,4 +121,30 @@ export async function verifyEmailCode(
     { email, code }
   );
   return response.data;
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ChangePasswordResponse> {
+  const requestData: ChangePasswordRequest = {
+    currentPassword,
+    newPassword,
+  };
+
+  const response = await fetch('/api/users/me/password', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // 쿠키 포함
+    body: JSON.stringify(requestData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || '비밀번호 변경에 실패했습니다.');
+  }
+
+  return response.json();
 }

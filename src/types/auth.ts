@@ -75,3 +75,17 @@ export interface VerifyEmailCodeResponse {
   message: string;
   data: null;
 }
+
+// 비밀번호 변경 요청
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// 비밀번호 변경 응답
+export interface ChangePasswordResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: null;
+}
