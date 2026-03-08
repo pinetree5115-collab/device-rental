@@ -1,8 +1,9 @@
 // 1. import
 "use client";
 
-import { useState } from "react";
-import { issueCoupon } from '@/services/coupon.service';
+import { useState, useEffect } from "react";
+import { issueCoupon, getCoupons } from '@/services/coupon.service';
+import type { CouponData } from '@/types/coupon';
 
 // 2. 타입/인터페이스
 interface CouponPageProps {
@@ -67,8 +68,55 @@ const mockCoupons: Coupon[] = [
 
 // 4. 컴포넌트
 function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
-    const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [isLoadingCoupons, setIsLoadingCoupons] = useState(true);
     const [receivingCoupon, setReceivingCoupon] = useState<string | null>(null);
+
+    // 전체 쿠폰 로드
+    useEffect(() => {
+        loadCoupons();
+    }, []);
+
+    const loadCoupons = async () => {
+        setIsLoadingCoupons(true);
+        try {
+            const response = await getCoupons();
+            if (response.success && response.data) {
+                // 백엔드 데이터를 UI 포맷에 맞게 변환
+                const transformedCoupons: Coupon[] = response.data.map((coupon: CouponData) => ({
+                    id: coupon.couponId.toString(),
+                    title: coupon.couponName,
+                    description: coupon.description,
+                    discount: formatDiscount(coupon),
+                    totalQuantity: coupon.totalQuantity,
+                    remainingQuantity: coupon.totalQuantity - coupon.issuedQuantity,
+                    minPurchase: coupon.minOrderAmount || undefined,
+                    expiryDays: calculateExpiryDays(coupon.validUntil),
+                    received: false // TODO: 내 쿠폰 조회로 확인 필요
+                }));
+                setCoupons(transformedCoupons);
+            }
+        } catch (error) {
+            console.error('쿠폰 로드 실패:', error);
+        } finally {
+            setIsLoadingCoupons(false);
+        }
+    };
+
+    const formatDiscount = (coupon: CouponData) => {
+        if (coupon.discountType === 'PERCENT') {
+            return `${coupon.discountValue}%`;
+        }
+        return `${coupon.discountValue.toLocaleString()}원`;
+    };
+
+    const calculateExpiryDays = (validUntil: string) => {
+        const today = new Date();
+        const expiryDate = new Date(validUntil);
+        const diffTime = expiryDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, diffDays);
+    };
 
     const handleReceiveCoupon = async (couponId: string) => {
         if (!isLoggedIn) {
@@ -185,166 +233,177 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
 
             {/* Coupon List */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {coupons.map((coupon) => {
-                        const isSoldOut = coupon.remainingQuantity === 0;
-                        const isReceived = coupon.received;
-                        const isReceiving = receivingCoupon === coupon.id;
-                        const percentage =
-                            (coupon.remainingQuantity / coupon.totalQuantity) *
-                            100;
+                {isLoadingCoupons ? (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                        <span className="ml-2 text-gray-600">쿠폰을 불러오는 중...</span>
+                    </div>
+                ) : coupons.length === 0 ? (
+                    <div className="bg-white border border-gray-200 p-8 text-center">
+                        <p className="text-gray-500">발급 가능한 쿠폰이 없습니다.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {coupons.map((coupon) => {
+                            const isSoldOut = coupon.remainingQuantity === 0;
+                            const isReceived = coupon.received;
+                            const isReceiving = receivingCoupon === coupon.id;
+                            const percentage =
+                                (coupon.remainingQuantity / coupon.totalQuantity) *
+                                100;
 
-                        return (
-                            <div
-                                key={coupon.id}
-                                className={`bg-white border-2 p-8 transition-all ${isSoldOut
-                                    ? "border-gray-200 opacity-60"
-                                    : isReceived
-                                        ? "border-green-500"
-                                        : "border-gray-200 hover:border-red-500"
-                                    }`}
-                            >
-                                {/* Coupon Header */}
-                                <div className="mb-6">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h3 className="text-gray-900 flex-1">
-                                            {coupon.title}
-                                        </h3>
-                                        {isReceived && (
-                                            <div className="flex items-center gap-1 text-green-600 ml-2">
-                                                <span className="text-sm">
-                                                    받음
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-gray-600 mb-4">
-                                        {coupon.description}
-                                    </p>
-
-                                    {/* Discount Amount */}
-                                    <div className="inline-block px-4 py-2 bg-red-50 border border-red-200 mb-4">
-                                        <span className="text-red-600">
-                                            {coupon.discount} 할인
-                                        </span>
-                                    </div>
-
-                                    {/* Coupon Details */}
-                                    <div className="space-y-2 text-sm text-gray-600">
-                                        {coupon.minPurchase && (
-                                            <p>
-                                                • 최소 대여금액:{" "}
-                                                {coupon.minPurchase.toLocaleString()}
-                                                원
-                                            </p>
-                                        )}
-                                        <p>
-                                            • 유효기간: 발급일로부터{" "}
-                                            {coupon.expiryDays}일
+                            return (
+                                <div
+                                    key={coupon.id}
+                                    className={`bg-white border-2 p-8 transition-all ${isSoldOut
+                                        ? "border-gray-200 opacity-60"
+                                        : isReceived
+                                            ? "border-green-500"
+                                            : "border-gray-200 hover:border-red-500"
+                                        }`}
+                                >
+                                    {/* Coupon Header */}
+                                    <div className="mb-6">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <h3 className="text-gray-900 flex-1">
+                                                {coupon.title}
+                                            </h3>
+                                            {isReceived && (
+                                                <div className="flex items-center gap-1 text-green-600 ml-2">
+                                                    <span className="text-sm">
+                                                        받음
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-gray-600 mb-4">
+                                            {coupon.description}
                                         </p>
-                                    </div>
-                                </div>
 
-                                {/* Remaining Quantity */}
-                                <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm text-gray-600">
-                                            남은 수량
-                                        </span>
-                                        <span
-                                            className={`text-sm ${isSoldOut
-                                                ? "text-gray-400"
-                                                : percentage <= 20
-                                                    ? "text-red-600"
-                                                    : "text-gray-900"
-                                                }`}
-                                        >
-                                            {coupon.remainingQuantity} /{" "}
-                                            {coupon.totalQuantity}
-                                        </span>
-                                    </div>
-                                    <div className="w-full h-2 bg-gray-100 overflow-hidden">
-                                        <div
-                                            className={`h-full transition-all duration-500 ${isSoldOut
-                                                ? "bg-gray-300"
-                                                : percentage <= 20
-                                                    ? "bg-red-500"
-                                                    : "bg-green-500"
-                                                }`}
-                                            style={{ width: `${percentage}%` }}
-                                        />
-                                    </div>
-                                </div>
+                                        {/* Discount Amount */}
+                                        <div className="inline-block px-4 py-2 bg-red-50 border border-red-200 mb-4">
+                                            <span className="text-red-600">
+                                                {coupon.discount} 할인
+                                            </span>
+                                        </div>
 
-                                {/* Action Button */}
-                                {isSoldOut ? (
-                                    <div className="flex items-center justify-center gap-2 px-8 py-4 bg-gray-100 text-gray-500">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 20 20"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <g clipPath="url(#clip0_11_1829)">
-                                                <path
-                                                    d="M9.99984 18.3332C14.6022 18.3332 18.3332 14.6022 18.3332 9.99984C18.3332 5.39746 14.6022 1.6665 9.99984 1.6665C5.39746 1.6665 1.6665 5.39746 1.6665 9.99984C1.6665 14.6022 5.39746 18.3332 9.99984 18.3332Z"
-                                                    stroke="#6A7282"
-                                                    strokeWidth="1.66667"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M10 6.6665V9.99984"
-                                                    stroke="#6A7282"
-                                                    strokeWidth="1.66667"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M10 13.3335H10.0083"
-                                                    stroke="#6A7282"
-                                                    strokeWidth="1.66667"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </g>
-                                            <defs>
-                                                <clipPath id="clip0_11_1829">
-                                                    <rect
-                                                        width="20"
-                                                        height="20"
-                                                        fill="white"
+                                        {/* Coupon Details */}
+                                        <div className="space-y-2 text-sm text-gray-600">
+                                            {coupon.minPurchase && (
+                                                <p>
+                                                    • 최소 대여금액:{" "}
+                                                    {coupon.minPurchase.toLocaleString()}
+                                                    원
+                                                </p>
+                                            )}
+                                            <p>
+                                                • 유효기간: 발급일로부터{" "}
+                                                {coupon.expiryDays}일
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Remaining Quantity */}
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-sm text-gray-600">
+                                                남은 수량
+                                            </span>
+                                            <span
+                                                className={`text-sm ${isSoldOut
+                                                    ? "text-gray-400"
+                                                    : percentage <= 20
+                                                        ? "text-red-600"
+                                                        : "text-gray-900"
+                                                    }`}
+                                            >
+                                                {coupon.remainingQuantity} /{" "}
+                                                {coupon.totalQuantity}
+                                            </span>
+                                        </div>
+                                        <div className="w-full h-2 bg-gray-100 overflow-hidden">
+                                            <div
+                                                className={`h-full transition-all duration-500 ${isSoldOut
+                                                    ? "bg-gray-300"
+                                                    : percentage <= 20
+                                                        ? "bg-red-500"
+                                                        : "bg-green-500"
+                                                    }`}
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    {isSoldOut ? (
+                                        <div className="flex items-center justify-center gap-2 px-8 py-4 bg-gray-100 text-gray-500">
+                                            <svg
+                                                width="20"
+                                                height="20"
+                                                viewBox="0 0 20 20"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                                <g clipPath="url(#clip0_11_1829)">
+                                                    <path
+                                                        d="M9.99984 18.3332C14.6022 18.3332 18.3332 14.6022 18.3332 9.99984C18.3332 5.39746 14.6022 1.6665 9.99984 1.6665C5.39746 1.6665 1.6665 5.39746 1.6665 9.99984C1.6665 14.6022 5.39746 18.3332 9.99984 18.3332Z"
+                                                        stroke="#6A7282"
+                                                        strokeWidth="1.66667"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
                                                     />
-                                                </clipPath>
-                                            </defs>
-                                        </svg>
+                                                    <path
+                                                        d="M10 6.6665V9.99984"
+                                                        stroke="#6A7282"
+                                                        strokeWidth="1.66667"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                    <path
+                                                        d="M10 13.3335H10.0083"
+                                                        stroke="#6A7282"
+                                                        strokeWidth="1.66667"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                </g>
+                                                <defs>
+                                                    <clipPath id="clip0_11_1829">
+                                                        <rect
+                                                            width="20"
+                                                            height="20"
+                                                            fill="white"
+                                                        />
+                                                    </clipPath>
+                                                </defs>
+                                            </svg>
 
-                                        <span>쿠폰이 모두 소진되었습니다</span>
-                                    </div>
-                                ) : isReceived ? (
-                                    <div className="flex items-center justify-center gap-2 px-8 py-4 bg-green-50 border-2 border-green-500 text-green-700">
-                                        <span>쿠폰 받기 완료</span>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() =>
-                                            handleReceiveCoupon(coupon.id)
-                                        }
-                                        disabled={isReceiving || !isLoggedIn}
-                                        className="w-full px-8 py-4 bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                    >
-                                        {isReceiving
-                                            ? "처리 중..."
-                                            : isLoggedIn
-                                                ? "쿠폰 받기"
-                                                : "로그인 후 받기"}
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
+                                            <span>쿠폰이 모두 소진되었습니다</span>
+                                        </div>
+                                    ) : isReceived ? (
+                                        <div className="flex items-center justify-center gap-2 px-8 py-4 bg-green-50 border-2 border-green-500 text-green-700">
+                                            <span>쿠폰 받기 완료</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() =>
+                                                handleReceiveCoupon(coupon.id)
+                                            }
+                                            disabled={isReceiving || !isLoggedIn}
+                                            className="w-full px-8 py-4 bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                        >
+                                            {isReceiving
+                                                ? "처리 중..."
+                                                : isLoggedIn
+                                                    ? "쿠폰 받기"
+                                                    : "로그인 후 받기"}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Notice */}
                 <div className="mt-12 p-6 bg-gray-100 border border-gray-200">
