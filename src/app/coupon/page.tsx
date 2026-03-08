@@ -1,7 +1,10 @@
+// 1. import
 "use client";
 
 import { useState } from "react";
+import { issueCoupon } from '@/services/coupon.service';
 
+// 2. 타입/인터페이스
 interface CouponPageProps {
     onBack: () => void;
     isLoggedIn: boolean;
@@ -19,6 +22,7 @@ interface Coupon {
     received?: boolean;
 }
 
+// 3. 상수
 const mockCoupons: Coupon[] = [
     {
         id: "1",
@@ -61,11 +65,12 @@ const mockCoupons: Coupon[] = [
     },
 ];
 
+// 4. 컴포넌트
 function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
     const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
     const [receivingCoupon, setReceivingCoupon] = useState<string | null>(null);
 
-    const handleReceiveCoupon = (couponId: string) => {
+    const handleReceiveCoupon = async (couponId: string) => {
         if (!isLoggedIn) {
             alert("로그인이 필요합니다.");
             return;
@@ -73,24 +78,36 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
 
         setReceivingCoupon(couponId);
 
-        // Simulate API call
-        setTimeout(() => {
-            setCoupons((prev) =>
-                prev.map((coupon) => {
-                    if (coupon.id === couponId) {
-                        if (coupon.remainingQuantity > 0) {
-                            return {
-                                ...coupon,
-                                remainingQuantity: coupon.remainingQuantity - 1,
-                                received: true,
-                            };
+        try {
+            // 실제 API 호출
+            const response = await issueCoupon(parseInt(couponId));
+
+            if (response.success) {
+                // 성공 시 UI 업데이트
+                setCoupons((prev) =>
+                    prev.map((coupon) => {
+                        if (coupon.id === couponId) {
+                            if (coupon.remainingQuantity > 0) {
+                                return {
+                                    ...coupon,
+                                    remainingQuantity: coupon.remainingQuantity - 1,
+                                    received: true,
+                                };
+                            }
                         }
-                    }
-                    return coupon;
-                }),
-            );
+                        return coupon;
+                    }),
+                );
+                alert('쿠폰 발급이 완료되었습니다!');
+            } else {
+                alert(response.message || '쿠폰 발급에 실패했습니다.');
+            }
+        } catch (error: any) {
+            console.error('쿠폰 발급 오류:', error);
+            alert(error.message || '쿠폰 발급에 실패했습니다.');
+        } finally {
             setReceivingCoupon(null);
-        }, 800);
+        }
     };
 
     return (
@@ -180,13 +197,12 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                         return (
                             <div
                                 key={coupon.id}
-                                className={`bg-white border-2 p-8 transition-all ${
-                                    isSoldOut
-                                        ? "border-gray-200 opacity-60"
-                                        : isReceived
-                                          ? "border-green-500"
-                                          : "border-gray-200 hover:border-red-500"
-                                }`}
+                                className={`bg-white border-2 p-8 transition-all ${isSoldOut
+                                    ? "border-gray-200 opacity-60"
+                                    : isReceived
+                                        ? "border-green-500"
+                                        : "border-gray-200 hover:border-red-500"
+                                    }`}
                             >
                                 {/* Coupon Header */}
                                 <div className="mb-6">
@@ -236,13 +252,12 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                                             남은 수량
                                         </span>
                                         <span
-                                            className={`text-sm ${
-                                                isSoldOut
-                                                    ? "text-gray-400"
-                                                    : percentage <= 20
-                                                      ? "text-red-600"
-                                                      : "text-gray-900"
-                                            }`}
+                                            className={`text-sm ${isSoldOut
+                                                ? "text-gray-400"
+                                                : percentage <= 20
+                                                    ? "text-red-600"
+                                                    : "text-gray-900"
+                                                }`}
                                         >
                                             {coupon.remainingQuantity} /{" "}
                                             {coupon.totalQuantity}
@@ -250,13 +265,12 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                                     </div>
                                     <div className="w-full h-2 bg-gray-100 overflow-hidden">
                                         <div
-                                            className={`h-full transition-all duration-500 ${
-                                                isSoldOut
-                                                    ? "bg-gray-300"
-                                                    : percentage <= 20
-                                                      ? "bg-red-500"
-                                                      : "bg-green-500"
-                                            }`}
+                                            className={`h-full transition-all duration-500 ${isSoldOut
+                                                ? "bg-gray-300"
+                                                : percentage <= 20
+                                                    ? "bg-red-500"
+                                                    : "bg-green-500"
+                                                }`}
                                             style={{ width: `${percentage}%` }}
                                         />
                                     </div>
@@ -323,8 +337,8 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
                                         {isReceiving
                                             ? "처리 중..."
                                             : isLoggedIn
-                                              ? "쿠폰 받기"
-                                              : "로그인 후 받기"}
+                                                ? "쿠폰 받기"
+                                                : "로그인 후 받기"}
                                     </button>
                                 )}
                             </div>
@@ -362,4 +376,5 @@ function CouponPage({ onBack, isLoggedIn = true }: CouponPageProps) {
     );
 }
 
+// 5. export
 export default CouponPage;
