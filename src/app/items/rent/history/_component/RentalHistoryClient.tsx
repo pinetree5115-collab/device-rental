@@ -1,42 +1,12 @@
 "use client";
 
+import { getUserCoupons } from "@/services/coupon.service";
 import { fetchMyRentals } from "@/services/rent.service";
 import { Rental } from "@/types/common";
+import { UserCoupon } from "@/types/coupon";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Clock, Package } from "lucide-react";
 import { useState } from "react";
-
-interface Coupon {
-    id: string;
-    name: string;
-    discount: number;
-    type: "percentage" | "fixed";
-    minAmount: number;
-}
-
-const mockCoupons: Coupon[] = [
-    {
-        id: "1",
-        name: "신규 회원 10% 할인",
-        discount: 10,
-        type: "percentage",
-        minAmount: 10000,
-    },
-    {
-        id: "2",
-        name: "5,000원 할인 쿠폰",
-        discount: 5000,
-        type: "fixed",
-        minAmount: 20000,
-    },
-    {
-        id: "3",
-        name: "20% 할인 쿠폰",
-        discount: 20,
-        type: "percentage",
-        minAmount: 30000,
-    },
-];
 
 const userPoints = 15000;
 
@@ -51,11 +21,21 @@ function RentalHistoryClient() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [usedPoint, setUsedPoint] = useState(0);
     const [pointLimitMessage, setPointLimitMessage] = useState("");
-    const [selectedCouponId, setSelectedCouponId] = useState<string | null>(
+    const [selectedCouponId, setSelectedCouponId] = useState<number | null>(
         null,
     );
     const [isPaying, setIsPaying] = useState(false);
     const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+
+    const { data: userCouponsData } = useQuery({
+        queryKey: ["myCoupons"],
+        queryFn: getUserCoupons,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    const coupons: UserCoupon[] = userCouponsData?.data?.filter(
+        (c) => c.status === "AVAILABLE",
+    ) ?? [];
 
     const { data: rentals, isLoading } = useQuery({
         queryKey: ["myrentals", activeTab],
@@ -144,21 +124,24 @@ function RentalHistoryClient() {
             return;
         }
 
-        const selectedCoupon = mockCoupons.find(
-            (coupon) => coupon.id === selectedCouponId,
+        const selectedCoupon = coupons.find(
+            (coupon) => coupon.userCouponId === selectedCouponId,
         );
         let couponDiscount = 0;
 
         if (
             selectedCoupon &&
-            selectedRental.totalPrice >= selectedCoupon.minAmount
+            selectedRental.totalPrice >= (selectedCoupon.minOrderAmount ?? 0)
         ) {
-            if (selectedCoupon.type === "percentage") {
+            if (selectedCoupon.discountType === "PERCENT") {
                 couponDiscount = Math.floor(
-                    selectedRental.totalPrice * (selectedCoupon.discount / 100),
+                    selectedRental.totalPrice * (selectedCoupon.discountValue / 100),
                 );
+                if (selectedCoupon.maxDiscountAmount) {
+                    couponDiscount = Math.min(couponDiscount, selectedCoupon.maxDiscountAmount);
+                }
             } else {
-                couponDiscount = selectedCoupon.discount;
+                couponDiscount = selectedCoupon.discountValue;
             }
         }
 
@@ -194,9 +177,9 @@ function RentalHistoryClient() {
             if (!response.ok) {
                 const errorMessage =
                     typeof responseData === "object" &&
-                    responseData !== null &&
-                    "message" in responseData &&
-                    typeof (responseData as { message: unknown }).message ===
+                        responseData !== null &&
+                        "message" in responseData &&
+                        typeof (responseData as { message: unknown }).message ===
                         "string"
                         ? (responseData as { message: string }).message
                         : "결제 테스트 API 호출에 실패했습니다.";
@@ -287,9 +270,9 @@ function RentalHistoryClient() {
             if (!response.ok) {
                 const errorMessage =
                     typeof responseData === "object" &&
-                    responseData !== null &&
-                    "message" in responseData &&
-                    typeof (responseData as { message: unknown }).message ===
+                        responseData !== null &&
+                        "message" in responseData &&
+                        typeof (responseData as { message: unknown }).message ===
                         "string"
                         ? (responseData as { message: string }).message
                         : "대여 취소 API 호출에 실패했습니다.";
@@ -363,21 +346,24 @@ function RentalHistoryClient() {
         }
     };
 
-    const selectedCoupon = mockCoupons.find(
-        (coupon) => coupon.id === selectedCouponId,
+    const selectedCoupon = coupons.find(
+        (coupon) => coupon.userCouponId === selectedCouponId,
     );
     let couponDiscount = 0;
     if (
         selectedRental &&
         selectedCoupon &&
-        selectedRental.totalPrice >= selectedCoupon.minAmount
+        selectedRental.totalPrice >= (selectedCoupon.minOrderAmount ?? 0)
     ) {
-        if (selectedCoupon.type === "percentage") {
+        if (selectedCoupon.discountType === "PERCENT") {
             couponDiscount = Math.floor(
-                selectedRental.totalPrice * (selectedCoupon.discount / 100),
+                selectedRental.totalPrice * (selectedCoupon.discountValue / 100),
             );
+            if (selectedCoupon.maxDiscountAmount) {
+                couponDiscount = Math.min(couponDiscount, selectedCoupon.maxDiscountAmount);
+            }
         } else {
-            couponDiscount = selectedCoupon.discount;
+            couponDiscount = selectedCoupon.discountValue;
         }
     }
     const priceAfterCoupon = (selectedRental?.totalPrice ?? 0) - couponDiscount;
@@ -402,7 +388,7 @@ function RentalHistoryClient() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
-                <button onClick={() => {}} className="hover:text-gray-900">
+                <button onClick={() => { }} className="hover:text-gray-900">
                     계정
                 </button>
                 <span>/</span>
@@ -423,29 +409,27 @@ function RentalHistoryClient() {
             <div className="flex gap-2 mb-8 border-b-2 border-gray-200">
                 <button
                     onClick={() => setActiveTab("BORROWER")}
-                    className={`px-6 py-3 transition-colors ${
-                        activeTab === "BORROWER"
+                    className={`px-6 py-3 transition-colors ${activeTab === "BORROWER"
                             ? "border-b-2 border-red-500 text-gray-900 -mb-0.5"
                             : "text-gray-500 hover:text-gray-900"
-                    }`}
+                        }`}
                 >
                     대여 받은 내역
                 </button>
                 <button
                     onClick={() => setActiveTab("LENDER")}
-                    className={`px-6 py-3 transition-colors ${
-                        activeTab === "LENDER"
+                    className={`px-6 py-3 transition-colors ${activeTab === "LENDER"
                             ? "border-b-2 border-red-500 text-gray-900 -mb-0.5"
                             : "text-gray-500 hover:text-gray-900"
-                    }`}
+                        }`}
                 >
                     대여 해준 내역
                 </button>
             </div>
 
             {rentals &&
-            rentals.data.content &&
-            rentals.data.content.length > 0 ? (
+                rentals.data.content &&
+                rentals.data.content.length > 0 ? (
                 <div className="space-y-6">
                     {rentals!.data.content.map((rental) => {
                         const config = getStatusConfig(rental.status);
@@ -511,7 +495,7 @@ function RentalHistoryClient() {
                                                     {/* 대여 받은 내역 버튼 */}
                                                     {activeTab === "BORROWER" &&
                                                         rental.status ===
-                                                            "REQUESTED" && (
+                                                        "REQUESTED" && (
                                                             <>
                                                                 <button
                                                                     onClick={() =>
@@ -540,7 +524,7 @@ function RentalHistoryClient() {
                                                         rental,
                                                     ) &&
                                                         rental.status ===
-                                                            "CONFIRMED" && (
+                                                        "CONFIRMED" && (
                                                             <button
                                                                 onClick={() =>
                                                                     handleCancelRental(
@@ -556,7 +540,7 @@ function RentalHistoryClient() {
                                                     {/* 대여 해준 내역 버튼 */}
                                                     {activeTab === "LENDER" &&
                                                         rental.status ===
-                                                            "CONFIRMED" && (
+                                                        "CONFIRMED" && (
                                                             <button
                                                                 onClick={() =>
                                                                     handleConfirmReturn(
@@ -571,10 +555,10 @@ function RentalHistoryClient() {
 
                                                     {rental.status ===
                                                         "ENDED" && (
-                                                        <span className="px-6 py-2 text-gray-400">
-                                                            대여 완료
-                                                        </span>
-                                                    )}
+                                                            <span className="px-6 py-2 text-gray-400">
+                                                                대여 완료
+                                                            </span>
+                                                        )}
                                                 </div>
                                             </div>
                                         </div>
@@ -634,28 +618,28 @@ function RentalHistoryClient() {
                                     value={selectedCouponId ?? ""}
                                     onChange={(event) =>
                                         setSelectedCouponId(
-                                            event.target.value || null,
+                                            event.target.value ? Number(event.target.value) : null,
                                         )
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                                 >
                                     <option value="">쿠폰 사용 안 함</option>
-                                    {mockCoupons.map((coupon) => (
+                                    {coupons.map((coupon) => (
                                         <option
-                                            key={coupon.id}
-                                            value={coupon.id}
+                                            key={coupon.userCouponId}
+                                            value={coupon.userCouponId}
                                         >
-                                            {coupon.name}
+                                            {coupon.couponName}
                                         </option>
                                     ))}
                                 </select>
                                 {selectedCoupon &&
                                     selectedRental &&
                                     selectedRental.totalPrice <
-                                        selectedCoupon.minAmount && (
+                                    (selectedCoupon.minOrderAmount ?? 0) && (
                                         <p className="text-xs text-red-500 mt-2">
                                             최소 주문 금액{" "}
-                                            {selectedCoupon.minAmount.toLocaleString()}
+                                            {(selectedCoupon.minOrderAmount ?? 0).toLocaleString()}
                                             원 이상에서 사용 가능합니다.
                                         </p>
                                     )}
