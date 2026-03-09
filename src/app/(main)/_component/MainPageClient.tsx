@@ -76,8 +76,6 @@ function MainPageClient({ categories }: MainPageClientProps) {
         setCategoryFilter(value);
     };
 
-    console.log("data:::", data);
-
     const items = data?.content ?? [];
     const totalPages = data?.page.totalPages ?? 0;
 

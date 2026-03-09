@@ -51,7 +51,6 @@ export const fetchCategories = async () => {
  */
 interface FetchItemsOptions {
     baseUrl?: string;
-    cookie?: string;
 }
 export interface FetchItemsResponse {
     content: Item[];
@@ -114,16 +113,27 @@ export const fetchItems = async (
  *
  * @returns imageUrls
  */
+interface FetchItemsOptions {
+    baseUrl?: string;
+}
 interface ImgsUploadResponse {
     imageUrls: string[];
 }
-export const createImgsApi = async (images: File[]) => {
+export const createImgsApi = async (
+    images: File[],
+    options?: FetchItemsOptions,
+) => {
     try {
         const formData = new FormData();
         images.forEach((image) => {
             formData.append("files", image);
         });
-        const response = await fetch("/api/images", {
+
+        const requestUrl = options?.baseUrl
+            ? `${options.baseUrl}/api/images?`
+            : "/api/images?";
+
+        const response = await fetch(requestUrl, {
             method: "POST",
             credentials: "include",
             body: formData,
@@ -161,9 +171,13 @@ interface CreatePostResponse {
 export const createPostApi = async (
     data: NewItemData,
     idempotencyKey: string,
+    options?: FetchItemsOptions,
 ) => {
     try {
-        const response = await fetch("/api/posts", {
+        const requestUrl = options?.baseUrl
+            ? `${options.baseUrl}/api/posts?`
+            : "/api/posts?";
+        const response = await fetch(requestUrl, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -253,9 +267,15 @@ export const fetchMyItems = async (options?: FetchMyItemsOptions) => {
 export interface CreateRentalResponse {
     rentalId: number;
 }
-export const createRentalApi = async (data: RentalData) => {
+export const createRentalApi = async (
+    data: RentalData,
+    options?: FetchItemsOptions,
+) => {
     try {
-        const response = await fetch("/api/rentals", {
+        const requestUrl = options?.baseUrl
+            ? `${options.baseUrl}/api/rentals`
+            : "/api/rentals";
+        const response = await fetch(requestUrl, {
             method: "POST",
             credentials: "include",
             headers: {

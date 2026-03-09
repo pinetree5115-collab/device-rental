@@ -46,6 +46,12 @@ const mockCoupons: Coupon[] = [
 
 function ItemRentClient({ item }: { item: Item }) {
     const router = useRouter();
+    const host =
+        typeof window !== "undefined" ? window.location.host : undefined;
+    const protocol =
+        typeof window !== "undefined"
+            ? window.location.protocol.replace(":", "")
+            : "http";
 
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -109,7 +115,9 @@ function ItemRentClient({ item }: { item: Item }) {
         };
 
         try {
-            const response = await createRentalApi(rentalData);
+            const response = await createRentalApi(rentalData, {
+                baseUrl: host ? `${protocol}://${host}` : undefined,
+            });
 
             if (response) {
                 alert("대여 신청이 완료되었습니다!");
