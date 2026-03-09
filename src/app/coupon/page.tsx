@@ -22,49 +22,6 @@ interface Coupon {
     received?: boolean;
 }
 
-// 3. 상수
-const mockCoupons: Coupon[] = [
-    {
-        id: "1",
-        title: "신규 회원 환영 쿠폰",
-        description: "첫 대여 시 사용 가능한 특별 할인 쿠폰",
-        discount: "10,000원",
-        totalQuantity: 100,
-        remainingQuantity: 23,
-        minPurchase: 30000,
-        expiryDays: 30,
-    },
-    {
-        id: "2",
-        title: "주말 특가 쿠폰",
-        description: "주말 대여 시 즉시 할인",
-        discount: "15%",
-        totalQuantity: 50,
-        remainingQuantity: 5,
-        minPurchase: 20000,
-        expiryDays: 7,
-    },
-    {
-        id: "3",
-        title: "프리미엄 기기 할인",
-        description: "5만원 이상 고가 기기 대여 시 사용",
-        discount: "20,000원",
-        totalQuantity: 30,
-        remainingQuantity: 0,
-        minPurchase: 50000,
-        expiryDays: 14,
-    },
-    {
-        id: "4",
-        title: "첫 구매 감사 쿠폰",
-        description: "모든 상품에 사용 가능",
-        discount: "5,000원",
-        totalQuantity: 200,
-        remainingQuantity: 147,
-        expiryDays: 60,
-    },
-];
-
 // 4. 컴포넌트
 function CouponPage({ isLoggedIn = true }: CouponPageProps) {
     const [activeTab, setActiveTab] = useState<'available' | 'my'>('available');
