@@ -22,6 +22,8 @@ export interface EditItemData {
     imageUrls: string[];
 }
 
+const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+
 function ItemEditModal({
     item,
     categories,
@@ -91,6 +93,22 @@ function ItemEditModal({
         const files = e.target.files;
         if (files) {
             const newFiles = Array.from(files);
+            const oversizedFiles = newFiles.filter(
+                (file) => file.size > MAX_IMAGE_SIZE_BYTES,
+            );
+
+            if (oversizedFiles.length > 0) {
+                alert("1MB 이하 이미지 파일만 업로드할 수 있습니다.");
+            }
+
+            const validNewFiles = newFiles.filter(
+                (file) => file.size <= MAX_IMAGE_SIZE_BYTES,
+            );
+
+            if (validNewFiles.length === 0) {
+                return;
+            }
+
             const availableSlots = Math.max(0, 5 - existingImageUrls.length);
 
             if (availableSlots === 0) {
@@ -98,12 +116,12 @@ function ItemEditModal({
                 return;
             }
 
-            const totalFiles = [...images, ...newFiles].slice(
+            const totalFiles = [...images, ...validNewFiles].slice(
                 0,
                 availableSlots,
             );
 
-            if (images.length + newFiles.length > availableSlots) {
+            if (images.length + validNewFiles.length > availableSlots) {
                 alert("최대 5개의 이미지만 업로드할 수 있습니다.");
                 setImages(totalFiles);
             } else {
@@ -434,7 +452,7 @@ function ItemEditModal({
                                 이미지를 변경하려면 업로드하세요
                             </p>
                             <p className="text-gray-400 text-xs">
-                                최대 5개, 최대 10MB, JPG, PNG 파일
+                                최대 5개, 파일당 최대 1MB, JPG, PNG 파일
                             </p>
                             <input
                                 type="file"

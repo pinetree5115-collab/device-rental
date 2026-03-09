@@ -17,8 +17,16 @@ export interface NewItemData {
     imageUrls?: string[];
 }
 
+const MAX_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
+
 function RegisterItemClient({ categories }: { categories: Category[] }) {
     const router = useRouter();
+    const host =
+        typeof window !== "undefined" ? window.location.host : undefined;
+    const protocol =
+        typeof window !== "undefined"
+            ? window.location.protocol.replace(":", "")
+            : "http";
 
     const [formData, setFormData] = useState<NewItemData>({
         title: "",
@@ -71,7 +79,23 @@ function RegisterItemClient({ categories }: { categories: Category[] }) {
         const files = e.target.files;
         if (files) {
             const newFiles = Array.from(files);
-            const totalFiles = [...images, ...newFiles];
+            const oversizedFiles = newFiles.filter(
+                (file) => file.size > MAX_IMAGE_SIZE_BYTES,
+            );
+
+            if (oversizedFiles.length > 0) {
+                alert("1MB 이하 이미지 파일만 업로드할 수 있습니다.");
+            }
+
+            const validNewFiles = newFiles.filter(
+                (file) => file.size <= MAX_IMAGE_SIZE_BYTES,
+            );
+
+            if (validNewFiles.length === 0) {
+                return;
+            }
+
+            const totalFiles = [...images, ...validNewFiles];
 
             if (totalFiles.length > 5) {
                 alert("최대 5개의 이미지만 업로드할 수 있습니다.");
@@ -117,7 +141,9 @@ function RegisterItemClient({ categories }: { categories: Category[] }) {
             e.preventDefault();
             if (validateForm()) {
                 setIsSubmitting(true);
-                const imagesUploadResponse = await createImgsApi(images);
+                const imagesUploadResponse = await createImgsApi(images, {
+                    baseUrl: host ? `${protocol}://${host}` : undefined,
+                });
                 formData.imageUrls = [...imagesUploadResponse];
 
                 if (!idempotencyKeyRef.current) {
@@ -127,6 +153,9 @@ function RegisterItemClient({ categories }: { categories: Category[] }) {
                 const response = await createPostApi(
                     formData,
                     idempotencyKeyRef.current,
+                    {
+                        baseUrl: host ? `${protocol}://${host}` : undefined,
+                    },
                 );
 
                 idempotencyKeyRef.current = null;
@@ -424,7 +453,7 @@ function RegisterItemClient({ categories }: { categories: Category[] }) {
                             이미지를 업로드하거나 드래그하세요
                         </p>
                         <p className="text-gray-400 text-sm">
-                            최대 5개, 최대 10MB, JPG, PNG 파일
+                            최대 5개, 파일당 최대 1MB, JPG, PNG 파일
                         </p>
                         <input
                             type="file"
