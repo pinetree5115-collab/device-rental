@@ -89,10 +89,17 @@ function CouponPage({ isLoggedIn = true }: CouponPageProps) {
     const loadCoupons = async () => {
         setIsLoadingCoupons(true);
         try {
-            const response = await getCoupons();
-            if (response.success && response.data) {
-                // 백엔드 데이터를 UI 포맷에 맞게 변환
-                const transformedCoupons: Coupon[] = response.data.map((coupon: CouponData) => ({
+            const [couponsResponse, myCouponsResponse] = await Promise.all([
+                getCoupons(),
+                isLoggedIn ? getUserCoupons().catch(() => null) : Promise.resolve(null),
+            ]);
+
+            const myIssuedCouponIds = new Set(
+                myCouponsResponse?.data?.map((c) => c.couponId) ?? [],
+            );
+
+            if (couponsResponse.success && couponsResponse.data) {
+                const transformedCoupons: Coupon[] = couponsResponse.data.map((coupon: CouponData) => ({
                     id: coupon.couponId.toString(),
                     title: coupon.couponName,
                     description: coupon.description,
@@ -101,7 +108,7 @@ function CouponPage({ isLoggedIn = true }: CouponPageProps) {
                     remainingQuantity: coupon.totalQuantity - coupon.issuedQuantity,
                     minPurchase: coupon.minOrderAmount || undefined,
                     expiryDays: calculateExpiryDays(coupon.validUntil),
-                    received: false // TODO: 내 쿠폰 조회로 확인 필요
+                    received: myIssuedCouponIds.has(coupon.couponId),
                 }));
                 setCoupons(transformedCoupons);
             }
