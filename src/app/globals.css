@@ -2,7 +2,7 @@
 
 :root {
     --background: #ffffff;
-    --foreground: #171717;
+    --foreground: #0a0a0a;
 }
 
 @theme inline {
@@ -15,7 +15,6 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --background: #0a0a0a;
-        --foreground: #ededed;
     }
 }
 
@@ -23,9 +22,11 @@
     font-family: "Pretendard", sans-serif;
 }
 
-body {
-    background: var(--background);
-    color: var(--foreground);
+@layer base {
+    body {
+        background: white;
+        color: var(--foreground);
+    }
 }
 
 button {
