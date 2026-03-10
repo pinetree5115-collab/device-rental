@@ -27,8 +27,8 @@ const SIDEBAR_MENU = [
     id: 'rental-management',
     label: '나의 대여',
     items: [
-      { id: 'rental-history', label: '대여 내역', href: '/mypage/rentals' },
-      { id: 'my-items', label: '내 물품 관리', href: '/mypage/items' },
+      { id: 'rental-history', label: '대여 내역', href: '/items/rent/history' },
+      { id: 'my-items', label: '내 물품 관리', href: '/items/manage' },
     ],
   },
   {
