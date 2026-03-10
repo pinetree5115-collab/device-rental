@@ -4,10 +4,13 @@ import { getMyInfoApi } from "@/services/auth_copy.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Package, User, LogIn, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { LoginModal } from "@/components/common/LoginModal";
 
 export function Navbar() {
     const queryClient = useQueryClient();
     const router = useRouter();
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const { data: user } = useQuery({
         queryKey: ["myInfo"],
@@ -30,7 +33,7 @@ export function Navbar() {
                 router.push("/");
             });
         } else {
-            router.push("/login");
+            setIsLoginModalOpen(true);
         }
     };
 
@@ -134,6 +137,11 @@ export function Navbar() {
                     </div>
                 </div>
             </nav>
+
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
+            />
         </>
     );
 }
