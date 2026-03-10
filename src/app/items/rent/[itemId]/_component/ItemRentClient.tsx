@@ -12,37 +12,7 @@ export interface RentalData {
     receiveMethod: "PARCEL" | "MEETUP";
 }
 
-interface Coupon {
-    id: string;
-    name: string;
-    discount: number;
-    type: "percentage" | "fixed";
-    minAmount: number;
-}
-
-const mockCoupons: Coupon[] = [
-    {
-        id: "1",
-        name: "신규 회원 10% 할인",
-        discount: 10,
-        type: "percentage",
-        minAmount: 10000,
-    },
-    {
-        id: "2",
-        name: "5,000원 할인 쿠폰",
-        discount: 5000,
-        type: "fixed",
-        minAmount: 20000,
-    },
-    {
-        id: "3",
-        name: "20% 할인 쿠폰",
-        discount: 20,
-        type: "percentage",
-        minAmount: 30000,
-    },
-];
+// mock 데이터 제거하고 실제 API 데이터 사용
 
 function ItemRentClient({ item }: { item: Item }) {
     const router = useRouter();
@@ -56,11 +26,7 @@ function ItemRentClient({ item }: { item: Item }) {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [selectedPickupMethod, setSelectedPickupMethod] = useState("");
-    const [selectedCouponId, setSelectedCouponId] = useState<string | null>(
-        null,
-    );
     const [pointsToUse, setPointsToUse] = useState(0);
-    const [showCouponModal, setShowCouponModal] = useState(false);
 
     const userPoints = 15000; // 유저 포인트 예시
 
@@ -77,23 +43,9 @@ function ItemRentClient({ item }: { item: Item }) {
     const days = calculateDays();
     const basePrice = item.pricePerDay * days;
 
-    // 쿠폰 및 포인트 할인 계산
-    const selectedCoupon = mockCoupons.find((c) => c.id === selectedCouponId);
-    let couponDiscount = 0;
-    if (selectedCoupon && basePrice >= selectedCoupon.minAmount) {
-        if (selectedCoupon.type === "percentage") {
-            couponDiscount = Math.floor(
-                basePrice * (selectedCoupon.discount / 100),
-            );
-        } else {
-            couponDiscount = selectedCoupon.discount;
-        }
-    }
-
-    const priceAfterCoupon = basePrice - couponDiscount;
-    const maxPoints = Math.min(userPoints, Math.floor(priceAfterCoupon * 0.5)); // Max 50% of price
+    const maxPoints = Math.min(userPoints, Math.floor(basePrice * 0.5));
     const validPointsToUse = Math.min(pointsToUse, maxPoints);
-    const finalPrice = priceAfterCoupon - validPointsToUse;
+    const finalPrice = basePrice - validPointsToUse;
 
     //     const handlePointsChange = (value: string) => {
     //         const points = parseInt(value) || 0;
@@ -147,7 +99,7 @@ function ItemRentClient({ item }: { item: Item }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                 <button
-                    onClick={() => {}}
+                    onClick={() => { }}
                     className="hover:text-gray-900 cursor-pointer"
                 >
                     홈
@@ -294,11 +246,10 @@ function ItemRentClient({ item }: { item: Item }) {
                                         onClick={() =>
                                             setSelectedPickupMethod(method)
                                         }
-                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${
-                                            selectedPickupMethod === method
-                                                ? "border-red-500 bg-red-50 text-red-600"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-black"
-                                        }`}
+                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${selectedPickupMethod === method
+                                            ? "border-red-500 bg-red-50 text-red-600"
+                                            : "border-gray-300 bg-white text-gray-700 hover:border-black"
+                                            }`}
                                     >
                                         {method === "택배 수령" ? (
                                             <svg
@@ -394,79 +345,6 @@ function ItemRentClient({ item }: { item: Item }) {
                                 ))}
                             </div>
                         </div>
-
-                        {/* 쿠폰 선택 */}
-                        {/* <div className="mb-8">
-                            <label className="flex items-center gap-2 text-gray-900 mb-4">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <g clipPath="url(#clip0_11_495)">
-                                        <path
-                                            d="M10.4882 2.15502C10.1757 1.84244 9.75183 1.66678 9.30984 1.66669H3.33317C2.89114 1.66669 2.46722 1.84228 2.15466 2.15484C1.8421 2.4674 1.6665 2.89133 1.6665 3.33335V9.31002C1.6666 9.75201 1.84225 10.1759 2.15484 10.4884L9.40817 17.7417C9.78693 18.1181 10.2992 18.3293 10.8332 18.3293C11.3671 18.3293 11.8794 18.1181 12.2582 17.7417L17.7415 12.2584C18.1179 11.8796 18.3291 11.3673 18.3291 10.8334C18.3291 10.2994 18.1179 9.78712 17.7415 9.40835L10.4882 2.15502Z"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        <path
-                                            d="M6.25016 6.66665C6.48028 6.66665 6.66683 6.4801 6.66683 6.24998C6.66683 6.01986 6.48028 5.83331 6.25016 5.83331C6.02004 5.83331 5.8335 6.01986 5.8335 6.24998C5.8335 6.4801 6.02004 6.66665 6.25016 6.66665Z"
-                                            fill="#101828"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </g>
-                                    <defs>
-                                        <clipPath id="clip0_11_495">
-                                            <rect
-                                                width="20"
-                                                height="20"
-                                                fill="white"
-                                            />
-                                        </clipPath>
-                                    </defs>
-                                </svg>
-                                쿠폰 선택
-                            </label>
-                            <button
-                                type="button"
-                                onClick={() => setShowCouponModal(true)}
-                                className="w-full px-4 py-4 cursor-pointer border-2 border-gray-300 text-left flex items-center justify-between hover:border-black transition-colors"
-                            >
-                                <span
-                                    className={
-                                        selectedCoupon
-                                            ? "text-gray-900"
-                                            : "text-gray-500"
-                                    }
-                                >
-                                    {selectedCoupon
-                                        ? selectedCoupon.name
-                                        : "쿠폰을 선택해주세요"}
-                                </span>
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M7.5 15L12.5 10L7.5 5"
-                                        stroke="#99A1AF"
-                                        strokeWidth="1.66667"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </button>
-                        </div> */}
 
                         {/* 포인트 사용 */}
                         {/* <div className="mb-8">
@@ -570,15 +448,6 @@ function ItemRentClient({ item }: { item: Item }) {
                                 </div>
                             )}
 
-                            {couponDiscount > 0 && (
-                                <div className="flex justify-between text-gray-600">
-                                    <span>쿠폰 할인</span>
-                                    <span className="text-red-600">
-                                        -{couponDiscount.toLocaleString()}원
-                                    </span>
-                                </div>
-                            )}
-
                             {validPointsToUse > 0 && (
                                 <div className="flex justify-between text-gray-600">
                                     <span>포인트 사용</span>
@@ -619,70 +488,6 @@ function ItemRentClient({ item }: { item: Item }) {
                 </div>
             </div>
 
-            {/* 쿠폰 모달 */}
-            {/* {showCouponModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white max-w-md w-full p-8">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-gray-900">쿠폰 선택</h3>
-                            <button
-                                onClick={() => setShowCouponModal(false)}
-                                className="text-gray-400 hover:text-gray-600 text-2xl"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => {
-                                    setSelectedCouponId(null);
-                                    setShowCouponModal(false);
-                                }}
-                                className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${
-                                    !selectedCouponId
-                                        ? "border-red-500 bg-red-50"
-                                        : "border-gray-200 hover:border-black"
-                                }`}
-                            >
-                                <p className="text-gray-900">쿠폰 사용 안 함</p>
-                            </button>
-
-                            {mockCoupons.map((coupon) => {
-                                const isDisabled = basePrice < coupon.minAmount;
-                                return (
-                                    <button
-                                        key={coupon.id}
-                                        onClick={() => {
-                                            if (!isDisabled) {
-                                                setSelectedCouponId(coupon.id);
-                                                setShowCouponModal(false);
-                                            }
-                                        }}
-                                        disabled={isDisabled}
-                                        className={`w-full p-4 cursor-pointer border-2 text-left transition-colors ${
-                                            isDisabled
-                                                ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
-                                                : selectedCouponId === coupon.id
-                                                  ? "border-red-500 bg-red-50"
-                                                  : "border-gray-200 hover:border-black"
-                                        }`}
-                                    >
-                                        <p className="text-gray-900 mb-1">
-                                            {coupon.name}
-                                        </p>
-                                        <p className="text-gray-500 text-sm">
-                                            최소 주문 금액:{" "}
-                                            {coupon.minAmount.toLocaleString()}
-                                            원
-                                        </p>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )} */}
         </main>
     );
 }
