@@ -34,7 +34,7 @@ const SIDEBAR_MENU = [
   {
     id: 'points',
     label: '포인트',
-    items: [{ id: 'points', label: '포인트', href: '/mypage/points' }],
+    items: [{ id: 'points', label: '포인트', href: '/point' }],
   },
   {
     id: 'logout',
