@@ -101,3 +101,19 @@ export const getMyInfoApi = async () => {
         return null;
     }
 };
+
+export async function googleLogin(idToken: string): Promise<void> {
+    const response = await fetch("/api/login/google", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ idToken }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+        throw new Error(data.message || "구글 로그인에 실패했습니다.");
+    }
+}
