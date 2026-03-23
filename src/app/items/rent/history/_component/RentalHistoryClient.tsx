@@ -454,9 +454,7 @@ function RentalHistoryClient() {
                                 <div className="p-6">
                                     <div className="flex gap-6">
                                         <img
-                                            src={
-                                                "https://www.dummyimage.com/150x150"
-                                            }
+                                            src={`/api/image?url=${rental.thumbnailUrl}`}
                                             alt={rental.title}
                                             className="w-32 h-32 object-cover bg-gray-100"
                                         />

@@ -39,7 +39,7 @@ function ItemDetailClient({ item }: { item: Item }) {
                 <div className="space-y-4">
                     <div className="aspect-square overflow-hidden bg-gray-100">
                         <img
-                            src={item.imageUrls[selectedImgIndex]}
+                            src={`/api/image?url=${item.imageUrls[selectedImgIndex]}`}
                             alt={item.title}
                             className="w-full h-full object-cover"
                         />
@@ -51,7 +51,7 @@ function ItemDetailClient({ item }: { item: Item }) {
                                 className="aspect-square bg-gray-100 border-2 border-transparent hover:border-gray-900 cursor-pointer transition-colors"
                             >
                                 <img
-                                    src={i}
+                                    src={`/api/image?url=${i}`}
                                     alt=""
                                     className={`w-full h-full object-cover transition-opacity ${selectedImgIndex === index ? "opacity-100" : "opacity-60"}`}
                                     onClick={() => setSelectedImgIndex(index)}
