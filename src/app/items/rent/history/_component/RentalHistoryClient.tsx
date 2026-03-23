@@ -252,6 +252,73 @@ function RentalHistoryClient() {
         }
     };
 
+    const handleCancelPayment = async (rentalId: number) => {
+        const isConfirm = window.confirm(
+            "결제 취소 시 대여가 취소됩니다. 진행하시겠습니까?",
+        );
+        if (isConfirm) {
+            alert("결제 취소 준비중입니다.");
+            // try {
+            //     // 개에반데... ㅋㅋㅋ 하나 더 만들어달라해야겠다...
+
+            //     // 1. 현재 유저의 전체 결제 내역 조회
+            //     const fetchPaymentsResponse = await fetch("/api/payments", {
+            //         method: "GET",
+            //         credentials: "include",
+            //     });
+
+            //     const paymentsData = await fetchPaymentsResponse.json();
+
+            //     // 2. 결제 내역 중 rentalId가 같은 결제 내역이 있는지 확인
+            //     const paymentForRental = paymentsData.data.find(
+            //         (payment: { rentalId: number }) => payment.rentalId === rentalId,
+            //     );
+
+            //     // 3. 결제 내역이 있으면 해당 결제 내역의 paymentId로 결제 취소 API 호출
+            //     const response = await fetch(
+            //         `/api/payments/${paymentForRental?.paymentId}/cancel`,
+            //         {
+            //             method: "POST",
+            //             credentials: "include",
+            //         },
+            //     );
+
+            //     let responseData: unknown = null;
+            //     try {
+            //         responseData = await response.json();
+            //     } catch {
+            //         responseData = null;
+            //     }
+
+            //     if (!response.ok) {
+            //         const errorMessage =
+            //             typeof responseData === "object" &&
+            //             responseData !== null &&
+            //             "message" in responseData &&
+            //             typeof (responseData as { message: unknown })
+            //                 .message === "string"
+            //                 ? (responseData as { message: string }).message
+            //                 : "결제 취소 API 호출에 실패했습니다.";
+
+            //         throw new Error(errorMessage);
+            //     }
+
+            //     alert("결제가 취소되었습니다.");
+
+            //     await queryClient.invalidateQueries({
+            //         queryKey: ["myrentals", activeTab],
+            //     });
+            // } catch (error) {
+            //     console.error(error);
+            //     alert(
+            //         error instanceof Error
+            //             ? error.message
+            //             : "결제 취소 중 오류가 발생했습니다.",
+            //     );
+            // }
+        }
+    };
+
     const confirmCancelRental = async () => {
         if (!selectedRental) {
             return;
@@ -537,7 +604,7 @@ function RentalHistoryClient() {
                                                             "CONFIRMED" && (
                                                             <button
                                                                 onClick={() =>
-                                                                    handleCancelRental(
+                                                                    handleCancelPayment(
                                                                         rental.rentalId,
                                                                     )
                                                                 }
