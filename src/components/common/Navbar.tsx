@@ -6,6 +6,7 @@ import { Package, User, LogIn, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoginModal } from "@/components/common/LoginModal";
+import Link from "next/link";
 
 export function Navbar() {
     const queryClient = useQueryClient();
@@ -21,6 +22,7 @@ export function Navbar() {
     const isLoggedIn = !!user;
 
     const onNavigate = (path: string) => {
+        console.log("here");
         router.push(`/${path}`);
     };
 
@@ -56,15 +58,15 @@ export function Navbar() {
                     <div className="flex justify-between items-center h-20">
                         {/* Left: Logo & Menu */}
                         <div className="flex items-center gap-12">
-                            <button
-                                onClick={() => onNavigate("")}
+                            <Link
+                                href="/"
                                 className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
                             >
                                 <Package className="w-8 h-8 text-gray-900" />
                                 <span className="text-2xl tracking-tight text-gray-900">
                                     전자기기 대여
                                 </span>
-                            </button>
+                            </Link>
 
                             {/* Menu Items */}
                             <div className="hidden md:flex items-center gap-8">

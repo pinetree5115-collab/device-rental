@@ -3,16 +3,24 @@ export async function POST(request: Request) {
         const body = await request.json();
         const incomingCookie = request.headers.get("Cookie");
 
+        console.log("Received request body:", body);
+
+        const uuid = crypto.randomUUID();
+        console.log("Generated UUID for idempotency:", uuid);
+
         const response = await fetch(
-            process.env.NEXT_PUBLIC_API_URL +
-                `/api/rentals/${body.rentalId}/confirm`,
+            process.env.NEXT_PUBLIC_API_URL + `/api/payments`,
             {
-                method: "PATCH",
+                method: "POST",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                     Cookie: incomingCookie || "",
+                    ...(uuid && {
+                        "Idempotency-Key": uuid,
+                    }),
                 },
+                body: JSON.stringify(body),
             },
         );
 
@@ -49,7 +57,7 @@ export async function POST(request: Request) {
 
         return Response.json(responseData, { status: response.status });
     } catch (error) {
-        console.error("Error in PATCH /api/rentals/:rentalId/confirm:", error);
+        console.error("Error in POST /api/payments:", error);
         return Response.json(
             {
                 success: false,

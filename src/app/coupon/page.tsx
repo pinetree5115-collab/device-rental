@@ -4,11 +4,8 @@
 import { useState, useEffect } from "react";
 import { issueCoupon, getCoupons, getUserCoupons } from '@/services/coupon.service';
 import type { CouponData, UserCoupon } from '@/types/coupon';
-
-// 2. 타입/인터페이스
-interface CouponPageProps {
-    isLoggedIn?: boolean;
-}
+import { useQuery } from "@tanstack/react-query";
+import { getMyInfoApi } from "@/services/auth_copy.service";
 
 interface Coupon {
     id: string;
@@ -23,13 +20,20 @@ interface Coupon {
 }
 
 // 4. 컴포넌트
-function CouponPage({ isLoggedIn = true }: CouponPageProps) {
+function CouponPage() {
     const [activeTab, setActiveTab] = useState<'available' | 'my'>('available');
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [myCoupons, setMyCoupons] = useState<UserCoupon[]>([]);
     const [isLoadingCoupons, setIsLoadingCoupons] = useState(true);
     const [isLoadingMyCoupons, setIsLoadingMyCoupons] = useState(false);
     const [receivingCoupon, setReceivingCoupon] = useState<string | null>(null);
+const { data: user } = useQuery({
+        queryKey: ["myInfo"],
+        queryFn: getMyInfoApi,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
+    const isLoggedIn = !!user;
 
     // 전체 쿠폰 로드
     useEffect(() => {
