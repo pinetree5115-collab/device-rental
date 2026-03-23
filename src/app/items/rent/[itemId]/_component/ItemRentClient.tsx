@@ -99,7 +99,7 @@ function ItemRentClient({ item }: { item: Item }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                 <button
-                    onClick={() => { }}
+                    onClick={() => {}}
                     className="hover:text-gray-900 cursor-pointer"
                 >
                     홈
@@ -121,7 +121,7 @@ function ItemRentClient({ item }: { item: Item }) {
                         {/* 아이템 요약 */}
                         <div className="flex gap-6 pb-8 mb-8 border-b-2 border-gray-200">
                             <img
-                                src={item.imageUrls[0]}
+                                src={`/api/image?url=${item.imageUrls[0]}`}
                                 alt={item.title}
                                 className="w-32 h-32 object-cover bg-gray-100"
                             />
@@ -246,10 +246,11 @@ function ItemRentClient({ item }: { item: Item }) {
                                         onClick={() =>
                                             setSelectedPickupMethod(method)
                                         }
-                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${selectedPickupMethod === method
-                                            ? "border-red-500 bg-red-50 text-red-600"
-                                            : "border-gray-300 bg-white text-gray-700 hover:border-black"
-                                            }`}
+                                        className={`flex items-center justify-center gap-2 cursor-pointer px-6 py-4 border-2 transition-colors ${
+                                            selectedPickupMethod === method
+                                                ? "border-red-500 bg-red-50 text-red-600"
+                                                : "border-gray-300 bg-white text-gray-700 hover:border-black"
+                                        }`}
                                     >
                                         {method === "택배 수령" ? (
                                             <svg
@@ -487,7 +488,6 @@ function ItemRentClient({ item }: { item: Item }) {
                     </div>
                 </div>
             </div>
-
         </main>
     );
 }
