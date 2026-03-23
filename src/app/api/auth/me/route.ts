@@ -11,14 +11,15 @@ const buildHeaders = (cookie?: string) => ({
     ...(cookie ? { Cookie: cookie } : {}),
 });
 
-const fetchMe = (accessToken?: string) =>
-    fetch(`${API_BASE_URL}/auth/me`, {
+const fetchMe = (accessToken?: string) => {
+    return fetch(`${API_BASE_URL}/auth/me`, {
         method: "GET",
         credentials: "include",
         headers: buildHeaders(
             accessToken ? `accessToken=${accessToken}` : undefined,
         ),
     });
+};
 
 const buildReplaceAccessTokenHeaders = (setCookieHeader: string) => {
     const headers = new Headers();

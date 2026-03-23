@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as authService from '@/services/auth.service';
+import { useQueryClient } from '@tanstack/react-query';
 
 // 2. 타입/인터페이스
 interface PasswordForm {
@@ -117,10 +118,15 @@ export default function PasswordChangePage() {
     }
   };
 
-  const handleLogout = () => {
-    // TODO: 로그아웃 처리
-    router.push('/');
-  };
+  const queryClient = useQueryClient();
+  const handleLogout = async () => {
+        await fetch("/api/logout", {
+            method: "POST",
+        }).then(() => {
+            queryClient.invalidateQueries({ queryKey: ["myInfo"] });
+            router.push("/");
+        });
+    };
 
   return (
     <div className="min-h-screen bg-white">

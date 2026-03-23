@@ -38,7 +38,9 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
             <div className="aspect-square overflow-hidden bg-gray-100 relative">
                 <img
                     src={
-                        item.imageUrls?.[0] || "https://via.placeholder.com/400"
+                        item.imageUrls?.[0]
+                            ? `/api/image?url=${item.imageUrls[0]}`
+                            : "https://via.placeholder.com/400"
                     }
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
