@@ -51,4 +51,5 @@ export interface Rental {
     totalPrice: number;
     createdAt: string;
     updatedAt: string;
+    thumbnailUrl: string;
 }
