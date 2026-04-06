@@ -9,13 +9,16 @@ import { useState } from "react";
 function ItemDetailClient({ item }: { item: Item }) {
     const router = useRouter();
 
+    console.log("ItemDetailClient 컴포넌트 - 아이템 데이터:", item);
+
     const { data: user } = useQuery({
         queryKey: ["myInfo"],
         queryFn: getMyInfoApi,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
-    const canRent = item.status === "AVAILABLE" && !!user;
+    const canRent =
+        (item.status === "AVAILABLE" || item.status === "RESERVED") && !!user;
     const isAvailable = item.status === "AVAILABLE";
 
     const [selectedImgIndex, setSelectedImgIndex] = useState(0);
@@ -25,7 +28,7 @@ function ItemDetailClient({ item }: { item: Item }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                 <button
-                    onClick={() => {}}
+                    onClick={() => router.push("/")}
                     className="cursor-pointer hover:text-gray-900"
                 >
                     홈
@@ -78,12 +81,14 @@ function ItemDetailClient({ item }: { item: Item }) {
                         <div className="flex items-center gap-3 mb-4">
                             <span
                                 className={
-                                    item.status === "AVAILABLE"
+                                    item.status === "AVAILABLE" ||
+                                    item.status === "RESERVED"
                                         ? "text-emerald-600"
                                         : "text-gray-500"
                                 }
                             >
-                                {item.status === "AVAILABLE"
+                                {item.status === "AVAILABLE" ||
+                                item.status === "RESERVED"
                                     ? "대여 가능"
                                     : "대여 불가"}
                             </span>

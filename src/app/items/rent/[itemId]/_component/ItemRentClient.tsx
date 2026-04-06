@@ -4,6 +4,7 @@ import { createRentalApi } from "@/services/post.service";
 import { Item } from "@/types/common";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DayPicker, type DateRange } from "react-day-picker";
 
 export interface RentalData {
     postId: number;
@@ -12,7 +13,44 @@ export interface RentalData {
     receiveMethod: "PARCEL" | "MEETUP";
 }
 
-// mock 데이터 제거하고 실제 API 데이터 사용
+const parseLocalDate = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+};
+
+const formatDate = (value?: Date) => {
+    if (!value) return "";
+
+    const year = value.getFullYear();
+    const month = `${value.getMonth() + 1}`.padStart(2, "0");
+    const day = `${value.getDate()}`.padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
+
+const formatDateLabel = (value?: Date) => {
+    if (!value) return "-";
+
+    return value.toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+};
+
+const isDateRangeOverlapping = (
+    selectedRange: { from: Date; to: Date },
+    rentalPeriods: Item["rentalPeriods"],
+) => {
+    return rentalPeriods.some((period) => {
+        const blockedStart = parseLocalDate(period.startDate);
+        const blockedEnd = parseLocalDate(period.endDate);
+
+        return (
+            selectedRange.from <= blockedEnd && selectedRange.to >= blockedStart
+        );
+    });
+};
 
 function ItemRentClient({ item }: { item: Item }) {
     const router = useRouter();
@@ -22,11 +60,15 @@ function ItemRentClient({ item }: { item: Item }) {
         typeof window !== "undefined"
             ? window.location.protocol.replace(":", "")
             : "http";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+    const [selectedRange, setSelectedRange] = useState<DateRange | undefined>();
     const [selectedPickupMethod, setSelectedPickupMethod] = useState("");
-    const [pointsToUse, setPointsToUse] = useState(0);
+    const [dateError, setDateError] = useState("");
+
+    const startDate = formatDate(selectedRange?.from);
+    const endDate = formatDate(selectedRange?.to);
 
     const userPoints = 15000; // 유저 포인트 예시
 
@@ -43,18 +85,57 @@ function ItemRentClient({ item }: { item: Item }) {
     const days = calculateDays();
     const basePrice = item.pricePerDay * days;
 
-    const maxPoints = Math.min(userPoints, Math.floor(basePrice * 0.5));
-    const validPointsToUse = Math.min(pointsToUse, maxPoints);
-    const finalPrice = basePrice - validPointsToUse;
+    const finalPrice = basePrice;
+    const disabledDays = [
+        { before: today },
+        ...item.rentalPeriods.map((period) => ({
+            from: parseLocalDate(period.startDate),
+            to: parseLocalDate(period.endDate),
+        })),
+    ];
 
-    //     const handlePointsChange = (value: string) => {
-    //         const points = parseInt(value) || 0;
-    //         setPointsToUse(Math.max(0, Math.min(points, maxPoints)));
-    //     };
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        if (!range) {
+            setSelectedRange(undefined);
+            setDateError("");
+            return;
+        }
+
+        if (range.from && range.to) {
+            const normalizedRange =
+                range.from <= range.to
+                    ? { from: range.from, to: range.to }
+                    : { from: range.to, to: range.from };
+
+            if (isDateRangeOverlapping(normalizedRange, item.rentalPeriods)) {
+                setSelectedRange(undefined);
+                setDateError(
+                    "이미 대여 중인 기간과 겹치지 않는 날짜만 선택해주세요.",
+                );
+                return;
+            }
+        }
+
+        setSelectedRange(range);
+        setDateError("");
+    };
 
     const handleSubmit = async () => {
         if (!startDate || !endDate || !selectedPickupMethod) {
             alert("모든 필수 항목을 선택해주세요");
+            return;
+        }
+
+        if (
+            isDateRangeOverlapping(
+                {
+                    from: parseLocalDate(startDate),
+                    to: parseLocalDate(endDate),
+                },
+                item.rentalPeriods,
+            )
+        ) {
+            alert("이미 대여 중인 기간과 겹치지 않는 날짜만 선택해주세요.");
             return;
         }
 
@@ -183,45 +264,90 @@ function ItemRentClient({ item }: { item: Item }) {
                                 대여 기간 선택
                                 <span className="text-red-500">*</span>
                             </label>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-600 mb-2">
-                                        시작일
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) =>
-                                            setStartDate(e.target.value)
-                                        }
-                                        min={
-                                            new Date()
-                                                .toISOString()
-                                                .split("T")[0]
-                                        }
-                                        className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-black transition-colors"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-gray-600 mb-2">
-                                        종료일
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) =>
-                                            setEndDate(e.target.value)
-                                        }
-                                        min={
-                                            startDate ||
-                                            new Date()
-                                                .toISOString()
-                                                .split("T")[0]
-                                        }
-                                        className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-black transition-colors"
-                                    />
+
+                            <div className="border-2 border-gray-300 p-4 sm:p-6">
+                                <DayPicker
+                                    mode="range"
+                                    selected={selectedRange}
+                                    onSelect={handleDateRangeChange}
+                                    disabled={disabledDays}
+                                    excludeDisabled
+                                    showOutsideDays
+                                    className="mx-auto"
+                                    classNames={{
+                                        months: "",
+                                        month: "space-y-4",
+                                        month_caption:
+                                            "flex items-center justify-center text-gray-900",
+                                        caption_label: "text-lg",
+                                        nav: "flex items-center gap-2",
+                                        button_previous:
+                                            "h-9 w-9 border border-gray-300 text-gray-700 flex justify-center items-center hover:border-black hover:text-black",
+                                        button_next:
+                                            "h-9 w-9 border border-gray-300 text-gray-700 flex justify-center items-center hover:border-black hover:text-black",
+                                        month_grid: "w-full border-collapse",
+                                        weekdays: "grid grid-cols-7 mb-2",
+                                        weekday:
+                                            "text-center text-sm text-gray-500 font-normal",
+                                        week: "grid grid-cols-7",
+                                        day: "aspect-square p-0 text-sm",
+                                        day_button:
+                                            "h-11 w-11 rounded-none border border-transparent transition-colors",
+                                        selected:
+                                            "bg-black text-white hover:bg-black",
+                                        range_start:
+                                            "bg-black text-white hover:bg-black",
+                                        range_end:
+                                            "bg-black text-white hover:bg-black",
+                                        range_middle:
+                                            "bg-gray-100 text-gray-900",
+                                        today: "text-red-500 font-semibold",
+                                        disabled:
+                                            "text-gray-300 line-through opacity-100",
+                                        outside: "text-gray-300",
+                                    }}
+                                />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                                    <div className="border-2 border-gray-200 px-4 py-3">
+                                        <p className="text-sm text-gray-500 mb-1">
+                                            시작일
+                                        </p>
+                                        <p className="text-gray-900">
+                                            {formatDateLabel(
+                                                selectedRange?.from,
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="border-2 border-gray-200 px-4 py-3">
+                                        <p className="text-sm text-gray-500 mb-1">
+                                            종료일
+                                        </p>
+                                        <p className="text-gray-900">
+                                            {formatDateLabel(selectedRange?.to)}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
+
+                            {item.rentalPeriods.length > 0 && (
+                                <p className="text-sm text-gray-500 mt-3">
+                                    예약 불가 기간:{" "}
+                                    {item.rentalPeriods
+                                        .map(
+                                            (period) =>
+                                                `${period.startDate} ~ ${period.endDate}`,
+                                        )
+                                        .join(", ")}
+                                </p>
+                            )}
+
+                            {dateError && (
+                                <p className="text-sm text-red-600 mt-3">
+                                    {dateError}
+                                </p>
+                            )}
+
                             {days > 0 && (
                                 <p className="text-gray-600 mt-3">
                                     선택한 기간:{" "}
@@ -346,84 +472,6 @@ function ItemRentClient({ item }: { item: Item }) {
                                 ))}
                             </div>
                         </div>
-
-                        {/* 포인트 사용 */}
-                        {/* <div className="mb-8">
-                            <label className="flex items-center gap-2 text-gray-900 mb-4">
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <g clipPath="url(#clip0_11_506)">
-                                        <path
-                                            d="M6.6665 11.6667C9.42793 11.6667 11.6665 9.42811 11.6665 6.66669C11.6665 3.90526 9.42793 1.66669 6.6665 1.66669C3.90508 1.66669 1.6665 3.90526 1.6665 6.66669C1.6665 9.42811 3.90508 11.6667 6.6665 11.6667Z"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        <path
-                                            d="M15.075 8.64166C15.8628 8.93535 16.5638 9.42294 17.1132 10.0593C17.6625 10.6957 18.0426 11.4604 18.2182 12.2826C18.3937 13.1047 18.3591 13.9579 18.1176 14.7632C17.876 15.5685 17.4353 16.2998 16.8362 16.8897C16.2371 17.4795 15.499 17.9087 14.69 18.1377C13.8811 18.3666 13.0275 18.3879 12.2081 18.1995C11.3888 18.0112 10.6301 17.6192 10.0024 17.06C9.37465 16.5007 8.89806 15.7922 8.6167 15"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        <path
-                                            d="M5.8335 5H6.66683V8.33333"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                        <path
-                                            d="M13.9249 11.5667L14.5082 12.1583L12.1582 14.5083"
-                                            stroke="#101828"
-                                            strokeWidth="1.66667"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </g>
-                                    <defs>
-                                        <clipPath id="clip0_11_506">
-                                            <rect
-                                                width="20"
-                                                height="20"
-                                                fill="white"
-                                            />
-                                        </clipPath>
-                                    </defs>
-                                </svg>
-                                포인트 사용
-                            </label>
-                            <div className="flex gap-3">
-                                <input
-                                    type="number"
-                                    value={pointsToUse || ""}
-                                    onChange={(e) =>
-                                        handlePointsChange(e.target.value)
-                                    }
-                                    placeholder="0"
-                                    min="0"
-                                    max={maxPoints}
-                                    className="flex-1 px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-black transition-colors"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setPointsToUse(maxPoints)}
-                                    className="px-6 py-3 cursor-pointer border-2 border-black text-black hover:bg-black hover:text-white transition-colors whitespace-nowrap"
-                                >
-                                    전액 사용
-                                </button>
-                            </div>
-                            <p className="text-gray-500 mt-2">
-                                보유 포인트: {userPoints.toLocaleString()}P |
-                                최대 사용 가능: {maxPoints.toLocaleString()}P
-                            </p>
-                        </div> */}
                     </div>
                 </div>
 
@@ -446,15 +494,6 @@ function ItemRentClient({ item }: { item: Item }) {
                                 <div className="text-gray-500 text-sm pl-4">
                                     {item.pricePerDay.toLocaleString()}원 ×{" "}
                                     {days}일
-                                </div>
-                            )}
-
-                            {validPointsToUse > 0 && (
-                                <div className="flex justify-between text-gray-600">
-                                    <span>포인트 사용</span>
-                                    <span className="text-red-600">
-                                        -{validPointsToUse.toLocaleString()}P
-                                    </span>
                                 </div>
                             )}
                         </div>

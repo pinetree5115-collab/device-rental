@@ -82,11 +82,13 @@ function RentalHistoryClient() {
             return false;
         }
 
-        if (rental.status === "REQUESTED") {
+        if (rental.rentalStatus === "REQUESTED") {
             return true;
         }
 
-        return rental.status === "CONFIRMED" && isRentalNotStarted(rental);
+        return (
+            rental.rentalStatus === "CONFIRMED" && isRentalNotStarted(rental)
+        );
     };
 
     const handleStartRental = (rentalId: number) => {
@@ -252,70 +254,54 @@ function RentalHistoryClient() {
         }
     };
 
-    const handleCancelPayment = async (rentalId: number) => {
+    const handleCancelPayment = async (paymentId: number) => {
         const isConfirm = window.confirm(
             "결제 취소 시 대여가 취소됩니다. 진행하시겠습니까?",
         );
         if (isConfirm) {
-            alert("결제 취소 준비중입니다.");
-            // try {
-            //     // 개에반데... ㅋㅋㅋ 하나 더 만들어달라해야겠다...
+            try {
+                // 3. 결제 내역이 있으면 해당 결제 내역의 paymentId로 결제 취소 API 호출
+                const response = await fetch(
+                    `/api/payments/${paymentId}/cancel`,
+                    {
+                        method: "POST",
+                        credentials: "include",
+                    },
+                );
 
-            //     // 1. 현재 유저의 전체 결제 내역 조회
-            //     const fetchPaymentsResponse = await fetch("/api/payments", {
-            //         method: "GET",
-            //         credentials: "include",
-            //     });
+                let responseData: unknown = null;
+                try {
+                    responseData = await response.json();
+                } catch {
+                    responseData = null;
+                }
 
-            //     const paymentsData = await fetchPaymentsResponse.json();
+                if (!response.ok) {
+                    const errorMessage =
+                        typeof responseData === "object" &&
+                        responseData !== null &&
+                        "message" in responseData &&
+                        typeof (responseData as { message: unknown })
+                            .message === "string"
+                            ? (responseData as { message: string }).message
+                            : "결제 취소 API 호출에 실패했습니다.";
 
-            //     // 2. 결제 내역 중 rentalId가 같은 결제 내역이 있는지 확인
-            //     const paymentForRental = paymentsData.data.find(
-            //         (payment: { rentalId: number }) => payment.rentalId === rentalId,
-            //     );
+                    throw new Error(errorMessage);
+                }
 
-            //     // 3. 결제 내역이 있으면 해당 결제 내역의 paymentId로 결제 취소 API 호출
-            //     const response = await fetch(
-            //         `/api/payments/${paymentForRental?.paymentId}/cancel`,
-            //         {
-            //             method: "POST",
-            //             credentials: "include",
-            //         },
-            //     );
+                alert("결제가 취소되었습니다.");
 
-            //     let responseData: unknown = null;
-            //     try {
-            //         responseData = await response.json();
-            //     } catch {
-            //         responseData = null;
-            //     }
-
-            //     if (!response.ok) {
-            //         const errorMessage =
-            //             typeof responseData === "object" &&
-            //             responseData !== null &&
-            //             "message" in responseData &&
-            //             typeof (responseData as { message: unknown })
-            //                 .message === "string"
-            //                 ? (responseData as { message: string }).message
-            //                 : "결제 취소 API 호출에 실패했습니다.";
-
-            //         throw new Error(errorMessage);
-            //     }
-
-            //     alert("결제가 취소되었습니다.");
-
-            //     await queryClient.invalidateQueries({
-            //         queryKey: ["myrentals", activeTab],
-            //     });
-            // } catch (error) {
-            //     console.error(error);
-            //     alert(
-            //         error instanceof Error
-            //             ? error.message
-            //             : "결제 취소 중 오류가 발생했습니다.",
-            //     );
-            // }
+                await queryClient.invalidateQueries({
+                    queryKey: ["myrentals", activeTab],
+                });
+            } catch (error) {
+                console.error(error);
+                alert(
+                    error instanceof Error
+                        ? error.message
+                        : "결제 취소 중 오류가 발생했습니다.",
+                );
+            }
         }
     };
 
@@ -511,7 +497,7 @@ function RentalHistoryClient() {
             rentals.data.content.length > 0 ? (
                 <div className="space-y-6">
                     {rentals!.data.content.map((rental) => {
-                        const config = getStatusConfig(rental.status);
+                        const config = getStatusConfig(rental.rentalStatus);
 
                         return (
                             <div
@@ -571,7 +557,7 @@ function RentalHistoryClient() {
                                                 <div className="flex gap-2">
                                                     {/* 대여 받은 내역 버튼 */}
                                                     {activeTab === "BORROWER" &&
-                                                        rental.status ===
+                                                        rental.rentalStatus ===
                                                             "REQUESTED" && (
                                                             <>
                                                                 <button
@@ -600,12 +586,12 @@ function RentalHistoryClient() {
                                                     {canCancelBorrowedRental(
                                                         rental,
                                                     ) &&
-                                                        rental.status ===
-                                                            "CONFIRMED" && (
+                                                        rental.canCancel &&
+                                                        !rental.canPay && (
                                                             <button
                                                                 onClick={() =>
                                                                     handleCancelPayment(
-                                                                        rental.rentalId,
+                                                                        rental.paymentId,
                                                                     )
                                                                 }
                                                                 className="px-6 py-2 border-2 border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
@@ -616,7 +602,7 @@ function RentalHistoryClient() {
 
                                                     {/* 대여 해준 내역 버튼 */}
                                                     {activeTab === "LENDER" &&
-                                                        rental.status ===
+                                                        rental.rentalStatus ===
                                                             "CONFIRMED" && (
                                                             <button
                                                                 onClick={() =>
@@ -630,7 +616,7 @@ function RentalHistoryClient() {
                                                             </button>
                                                         )}
 
-                                                    {rental.status ===
+                                                    {rental.rentalStatus ===
                                                         "ENDED" && (
                                                         <span className="px-6 py-2 text-gray-400">
                                                             대여 완료
@@ -793,7 +779,7 @@ function RentalHistoryClient() {
                             <button
                                 onClick={confirmStartRental}
                                 disabled={isPaying}
-                                className="flex-1 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                className={`flex-1 px-6 py-3 bg-red-500 text-white hover:bg-red-600 transition-colors ${isPaying ? "cursor-not-allowed opacity-50" : ""}`}
                             >
                                 {isPaying ? "결제 중..." : "결제하기"}
                             </button>

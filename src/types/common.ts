@@ -28,11 +28,19 @@ export interface Item {
     updateAt: string;
     userId: number;
     userName: string;
+    rentalPeriods: {
+        endDate: string;
+        rentalId: number;
+        startDate: string;
+    }[];
 }
 
 export type ItemStatus = "AVAILABLE" | "HIDDEN" | "RESERVED" | "ENDED"; // 백엔드한테 물어봐서 더 추가해야함
 
 export interface Rental {
+    canCancel: boolean;
+    canPay: boolean;
+    paymentId: number;
     rentalId: number;
     userId: number;
     postId: number;
@@ -41,30 +49,13 @@ export interface Rental {
     startDate: string;
     endDate: string;
     receiveMethod: "MEETUP" | "PARCEL";
-    status:
-    | "REQUESTED"
-    | "CONFIRMED"
-    | "IN_USE"
-    | "RETURNED"
-    | "ENDED"
-    | "CANCELED";
-}
-
-// 페이지네이션 응답 타입
-export interface PageInfo {
-    size: number;
-    number: number;
-    totalElements: number;
-    totalPages: number;
-}
-
-export interface PagedResponse<T> {
-    content: T[];
-    page: PageInfo;
-}
-
-// 대여 전용 페이지네이션 응답 타입
-export interface RentalPagedResponse extends PagedResponse<Rental> {
+    rentalStatus:
+        | "REQUESTED"
+        | "CONFIRMED"
+        | "IN_USE"
+        | "RETURNED"
+        | "ENDED"
+        | "CANCELED";
     totalPrice: number;
     createdAt: string;
     updatedAt: string;

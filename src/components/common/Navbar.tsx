@@ -22,7 +22,6 @@ export function Navbar() {
     const isLoggedIn = !!user;
 
     const onNavigate = (path: string) => {
-        console.log("here");
         router.push(`/${path}`);
     };
 

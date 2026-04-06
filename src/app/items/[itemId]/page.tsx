@@ -16,6 +16,8 @@ async function getItem({ id }: { id: string }) {
 
         const response: BaseResponse<Item> = await fetchResponse.json();
 
+        console.log("API 응답 데이터:", response);
+
         if (response.success) {
             return response.data;
         }
