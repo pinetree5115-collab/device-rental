@@ -108,6 +108,7 @@ export default function MyPage() {
             name: user?.name || prev.name,
             email: user?.email || prev.email,
             point: user?.point || prev.point,
+            address: user?.address || prev.address,
         }));
     }, [user]);
 
@@ -214,8 +215,8 @@ export default function MyPage() {
                                                     <Link
                                                         href={item.href}
                                                         className={`block px-3 py-2 text-sm ${isActive
-                                                                ? " text-red-600 font-medium"
-                                                                : "text-gray-700 hover:bg-gray-100"
+                                                            ? " text-red-600 font-medium"
+                                                            : "text-gray-700 hover:bg-gray-100"
                                                             }`}
                                                     >
                                                         {item.label}
