@@ -61,6 +61,10 @@ export interface PageInfo {
 export interface PagedResponse<T> {
     content: T[];
     page: PageInfo;
+}
+
+// 대여 전용 페이지네이션 응답 타입
+export interface RentalPagedResponse extends PagedResponse<Rental> {
     totalPrice: number;
     createdAt: string;
     updatedAt: string;
