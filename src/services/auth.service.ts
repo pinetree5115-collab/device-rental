@@ -47,19 +47,14 @@ export async function signup(
   account: string | null,
   phone: string | null
 ): Promise<AuthSuccessResponse> {
-  // 추가 정보를 additionalInfo 필드에 JSON 문자열로 담기
-  const additionalInfo = {
-    address,
-    bank,
-    account,
-    phone,
-  };
-
   const requestData: SignupRequest = {
     email,
     password,
     name,
-    additionalInfo: JSON.stringify(additionalInfo),
+    address,
+    bank,
+    account,
+    phone,
   };
 
   // Idempotency-Key 생성 (중복 요청 방지용)
