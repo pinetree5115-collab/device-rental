@@ -5,7 +5,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMyInfoApi } from "@/services/auth_copy.service";
+import {
+    getMyInfoApi,
+    getMyItemsCount,
+    getMyRentalsCount,
+} from "@/services/auth_copy.service";
 
 // 2. 타입/인터페이스
 interface UserProfile {
@@ -85,6 +89,20 @@ export default function MyPage() {
         gcTime: 10 * 60 * 1000, // 10 minutes
     });
 
+    const { data: myItemsCount = 0 } = useQuery({
+        queryKey: ["myItemsCount"],
+        queryFn: getMyItemsCount,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+    });
+
+    const { data: myRentalsCount = 0 } = useQuery({
+        queryKey: ["myRentalsCount"],
+        queryFn: getMyRentalsCount,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+    });
+
     useEffect(() => {
         setProfile((prev) => ({
             ...prev,
@@ -94,11 +112,11 @@ export default function MyPage() {
         }));
     }, [user]);
 
-    const [statistics] = useState<Statistics>({
-        registeredItems: 3,
-        activeRentals: 2,
-        points: 15000,
-    });
+    const statistics: Statistics = {
+        registeredItems: myItemsCount,
+        activeRentals: myRentalsCount,
+        points: Number(user?.point) || 0,
+    };
 
     const handleInputChange = (field: keyof UserProfile, value: string) => {
         setProfile((prev) => ({ ...prev, [field]: value }));
@@ -197,11 +215,10 @@ export default function MyPage() {
                                                 <li key={item.id}>
                                                     <Link
                                                         href={item.href}
-                                                        className={`block px-3 py-2 text-sm ${
-                                                            isActive
+                                                        className={`block px-3 py-2 text-sm ${isActive
                                                                 ? " text-red-600 font-medium"
                                                                 : "text-gray-700 hover:bg-gray-100"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {item.label}
                                                     </Link>

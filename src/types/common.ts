@@ -42,12 +42,25 @@ export interface Rental {
     endDate: string;
     receiveMethod: "MEETUP" | "PARCEL";
     status:
-        | "REQUESTED"
-        | "CONFIRMED"
-        | "IN_USE"
-        | "RETURNED"
-        | "ENDED"
-        | "CANCELED";
+    | "REQUESTED"
+    | "CONFIRMED"
+    | "IN_USE"
+    | "RETURNED"
+    | "ENDED"
+    | "CANCELED";
+}
+
+// 페이지네이션 응답 타입
+export interface PageInfo {
+    size: number;
+    number: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+export interface PagedResponse<T> {
+    content: T[];
+    page: PageInfo;
     totalPrice: number;
     createdAt: string;
     updatedAt: string;
