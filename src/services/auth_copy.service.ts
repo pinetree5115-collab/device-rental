@@ -117,3 +117,50 @@ export async function googleLogin(idToken: string): Promise<void> {
         throw new Error(data.message || "구글 로그인에 실패했습니다.");
     }
 }
+
+export async function getMyItemsCount(): Promise<number> {
+    try {
+        const response = await fetch("/api/items/my", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.data?.page) {
+            return data.data.page.totalElements;
+        }
+        return 0;
+    } catch (err) {
+        console.error("Failed to fetch my items count:", err);
+        return 0;
+    }
+}
+
+export async function getMyRentalsCount(): Promise<number> {
+    try {
+        const response = await fetch("/api/users/me/rentals?role=BORROWER", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.data?.page) {
+            return data.data.page.totalElements;
+        }
+        return 0;
+    } catch (err) {
+        console.error("Failed to fetch my rentals count:", err);
+        return 0;
+    }
+}
+
