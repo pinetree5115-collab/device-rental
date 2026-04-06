@@ -28,11 +28,19 @@ export interface Item {
     updateAt: string;
     userId: number;
     userName: string;
+    rentalPeriods: {
+        endDate: string;
+        rentalId: number;
+        startDate: string;
+    }[];
 }
 
 export type ItemStatus = "AVAILABLE" | "HIDDEN" | "RESERVED" | "ENDED"; // 백엔드한테 물어봐서 더 추가해야함
 
 export interface Rental {
+    canCancel: boolean;
+    canPay: boolean;
+    paymentId: number;
     rentalId: number;
     userId: number;
     postId: number;
@@ -41,7 +49,7 @@ export interface Rental {
     startDate: string;
     endDate: string;
     receiveMethod: "MEETUP" | "PARCEL";
-    status:
+    rentalStatus:
         | "REQUESTED"
         | "CONFIRMED"
         | "IN_USE"

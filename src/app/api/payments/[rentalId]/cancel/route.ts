@@ -11,7 +11,7 @@ export async function POST(
             process.env.NEXT_PUBLIC_API_URL +
                 `/api/payments/${rentalId}/cancel`,
             {
-                method: "PATCH",
+                method: "POST",
                 credentials: "include",
                 headers: {
                     "Content-Type": "application/json",

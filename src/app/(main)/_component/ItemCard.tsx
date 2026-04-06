@@ -17,9 +17,9 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
         },
         RENTED: { bg: "bg-red-100", text: "text-red-700", label: "대여 중" },
         RESERVED: {
-            bg: "bg-yellow-100",
-            text: "text-yellow-700",
-            label: "결제 보관 중",
+            bg: "bg-green-100",
+            text: "text-green-700",
+            label: "대여 가능",
         },
     };
 
