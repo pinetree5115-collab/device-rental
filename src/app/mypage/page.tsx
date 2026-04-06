@@ -22,7 +22,6 @@ interface UserProfile {
 interface Statistics {
     registeredItems: number;
     activeRentals: number;
-    points: number;
 }
 
 // 3. 상수
@@ -112,10 +111,9 @@ export default function MyPage() {
         }));
     }, [user]);
 
-    const statistics: Statistics = {
+    const statistics = {
         registeredItems: myItemsCount,
         activeRentals: myRentalsCount,
-        points: Number(user?.point) || 0,
     };
 
     const handleInputChange = (field: keyof UserProfile, value: string) => {
