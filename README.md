@@ -56,28 +56,28 @@
 
 ## 폴더 구조
 
+```
 src/
- ├─ app/
- │   ├─ (auth)/
- │   │   ├─ login/
- │   │   └─ signup/
- │   ├─ items/
- │   │   ├─page.tsx
- │   │   └─[itemId]/
- │   │       └─page.tsx
- │   ├─ rentals/
- │   ├─ coupons/
- │   ├─ points/
- │   └─ mypage/
- │
- ├─ components/
- │   ├─ common/
- │
- ├─ hooks/
- ├─ services/
- ├─ queries/
- ├─ types/
- ├─ utils/
+├─ app/
+│  ├─ (auth)/
+│  │  ├─ login/
+│  │  └─ signup/
+│  ├─ items/
+│  │  ├─ page.tsx
+│  │  └─ [itemId]/
+│  │     └─ page.tsx
+│  ├─ rentals/
+│  ├─ coupons/
+│  ├─ points/
+│  └─ mypage/
+├─ components/
+│  └─ common/
+├─ hooks/
+├─ services/
+├─ queries/
+├─ types/
+└─ utils/
+```
 
 
 <br>
